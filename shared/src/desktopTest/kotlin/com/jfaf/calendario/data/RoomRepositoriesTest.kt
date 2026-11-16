@@ -88,4 +88,5 @@ class RoomRepositoriesTest {
         assignments.setAssignments(mapOf(day to emptyList(), d2 to listOf("default-night")))
         assertEquals(mapOf(d2 to listOf("default-night")), assignments.getAssignments(day, d2))
     }
+
 }

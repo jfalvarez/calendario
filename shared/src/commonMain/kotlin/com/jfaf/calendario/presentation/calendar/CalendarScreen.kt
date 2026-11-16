@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -22,6 +23,7 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Brush
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.ContentCut
@@ -32,6 +34,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -57,6 +60,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import com.jfaf.calendario.domain.model.CalendarDay
 import com.jfaf.calendario.domain.model.Shift
 import com.jfaf.calendario.resources.*
+import com.jfaf.calendario.presentation.common.color
+import com.jfaf.calendario.presentation.common.onShiftColor
 import kotlinx.datetime.LocalDate
 import org.jetbrains.compose.resources.stringArrayResource
 import org.jetbrains.compose.resources.stringResource
@@ -69,6 +74,7 @@ class CalendarActions(
     val onToday: () -> Unit = {},
     val onOpenShifts: () -> Unit = {},
     val onOpenSettings: () -> Unit = {},
+    val onOpenStats: () -> Unit = {},
     val onModeChange: (CalendarMode) -> Unit = {},
     val onShiftSelected: (String) -> Unit = {},
     val onDayClick: (LocalDate) -> Unit = {},
@@ -87,15 +93,16 @@ class CalendarActions(
 
 /** Pantalla con estado (conecta el ViewModel) y contenido sin estado (testeable/previsualizable). */
 @Composable
-fun CalendarScreen(onOpenShifts: () -> Unit, onOpenSettings: () -> Unit, viewModel: CalendarViewModel = koinViewModel()) {
+fun CalendarScreen(onOpenShifts: () -> Unit, onOpenSettings: () -> Unit, onOpenStats: () -> Unit, viewModel: CalendarViewModel = koinViewModel()) {
     val state by viewModel.uiState.collectAsState()
-    val actions = remember(viewModel, onOpenShifts, onOpenSettings) {
+    val actions = remember(viewModel, onOpenShifts, onOpenSettings, onOpenStats) {
         CalendarActions(
             onPreviousMonth = viewModel::onPreviousMonth,
             onNextMonth = viewModel::onNextMonth,
             onToday = viewModel::onToday,
             onOpenShifts = onOpenShifts,
             onOpenSettings = onOpenSettings,
+            onOpenStats = onOpenStats,
             onModeChange = viewModel::onModeChange,
             onShiftSelected = viewModel::onShiftSelected,
             onDayClick = viewModel::onDayClick,
@@ -134,7 +141,7 @@ fun CalendarContent(state: CalendarUiState, actions: CalendarActions) {
                 Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, stringResource(Res.string.next_month))
             }
             TextButton(onClick = actions.onToday) { Text(stringResource(Res.string.today)) }
-            OverflowMenu(actions.onOpenShifts, actions.onOpenSettings)
+            OverflowMenu(actions.onOpenShifts, actions.onOpenStats, actions.onOpenSettings)
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             FilterChip(
@@ -193,10 +200,30 @@ private fun PaintBar(state: CalendarUiState, actions: CalendarActions) {
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         state.shifts.forEach { shift ->
+            val selected = state.paintShiftId == shift.id
+            val color = shift.color
             FilterChip(
-                selected = state.paintShiftId == shift.id,
+                selected = selected,
                 onClick = { actions.onShiftSelected(shift.id) },
                 label = { Text("${shift.abbreviation} · ${shift.name}") },
+                leadingIcon = if (selected) {
+                    { Icon(Icons.Filled.Check, contentDescription = null, Modifier.size(18.dp)) }
+                } else null,
+                colors = FilterChipDefaults.filterChipColors(
+                    containerColor = color,
+                    labelColor = color.onShiftColor,
+                    selectedContainerColor = color,
+                    selectedLabelColor = color.onShiftColor,
+                    selectedLeadingIconColor = color.onShiftColor,
+                ),
+                border = FilterChipDefaults.filterChipBorder(
+                    enabled = true,
+                    selected = selected,
+                    borderColor = color,
+                    selectedBorderColor = MaterialTheme.colorScheme.onSurface,
+                    borderWidth = 1.dp,
+                    selectedBorderWidth = 3.dp,
+                ),
             )
         }
     }
@@ -326,15 +353,15 @@ private fun ShiftTag(shift: Shift, modifier: Modifier = Modifier) {
     Box(
         modifier
             .heightIn(min = 16.dp)
-            .background(Color(shift.colorArgb), RoundedCornerShape(3.dp)),
+            .background(shift.color, RoundedCornerShape(3.dp)),
         contentAlignment = Alignment.Center,
     ) {
-        Text(shift.abbreviation, color = Color.White, fontSize = 11.sp, maxLines = 1)
+        Text(shift.abbreviation, color = shift.color.onShiftColor, fontSize = 11.sp, maxLines = 1)
     }
 }
 
 @Composable
-private fun OverflowMenu(onOpenShifts: () -> Unit, onOpenSettings: () -> Unit) {
+private fun OverflowMenu(onOpenShifts: () -> Unit, onOpenStats: () -> Unit, onOpenSettings: () -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     Box {
         IconButton(onClick = { expanded = true }) {
@@ -344,6 +371,10 @@ private fun OverflowMenu(onOpenShifts: () -> Unit, onOpenSettings: () -> Unit) {
             DropdownMenuItem(
                 text = { Text(stringResource(Res.string.manage_shifts)) },
                 onClick = { expanded = false; onOpenShifts() },
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(Res.string.stats_title)) },
+                onClick = { expanded = false; onOpenStats() },
             )
             DropdownMenuItem(
                 text = { Text(stringResource(Res.string.settings_title)) },

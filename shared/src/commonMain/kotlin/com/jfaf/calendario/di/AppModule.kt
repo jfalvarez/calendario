@@ -25,6 +25,8 @@ import com.jfaf.calendario.domain.repository.ShiftRepository
 import com.jfaf.calendario.domain.repository.TodayProvider
 import com.jfaf.calendario.domain.usecase.ObserveMonthUseCase
 import com.jfaf.calendario.domain.usecase.ObserveShiftsUseCase
+import com.jfaf.calendario.domain.usecase.ObserveStatsUseCase
+import com.jfaf.calendario.presentation.stats.StatsViewModel
 import com.jfaf.calendario.domain.usecase.PaintDayUseCase
 import com.jfaf.calendario.presentation.calendar.CalendarViewModel
 import org.koin.core.module.dsl.viewModelOf
@@ -43,6 +45,7 @@ val dataModule = module {
 
 val domainModule = module {
     factory { ObserveShiftsUseCase(get()) }
+    factory { ObserveStatsUseCase(get(), get()) }
     factory { ObserveMonthUseCase(get(), get()) }
     factory { PaintDayUseCase(get()) }
     factory { ObserveThemeModeUseCase(get()) }
@@ -61,6 +64,7 @@ val presentationModule = module {
     viewModelOf(::CalendarViewModel)
     viewModelOf(::ShiftsViewModel)
     viewModelOf(::SettingsViewModel)
+    viewModelOf(::StatsViewModel)
 }
 
 val appModules = listOf(dataModule, domainModule, presentationModule)

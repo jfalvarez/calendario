@@ -45,6 +45,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.text.KeyboardOptions
 import com.jfaf.calendario.domain.model.Shift
+import com.jfaf.calendario.presentation.common.color
+import com.jfaf.calendario.presentation.common.onShiftColor
 import com.jfaf.calendario.resources.*
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -148,7 +150,7 @@ private fun ShiftRow(
         Box(
             Modifier.size(44.dp).background(Color(shift.colorArgb), RoundedCornerShape(8.dp)),
             contentAlignment = Alignment.Center,
-        ) { Text(shift.abbreviation, color = Color.White, fontSize = 16.sp) }
+        ) { Text(shift.abbreviation, color = shift.color.onShiftColor, fontSize = 16.sp) }
         Column(Modifier.weight(1f)) {
             Text(shift.name, style = MaterialTheme.typography.titleMedium)
             scheduleText(shift)?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
@@ -169,7 +171,7 @@ private fun scheduleText(shift: Shift): String? {
     val end = shift.endMinutes ?: return null
     val work = shift.workMinutes ?: return null
     return "${formatMinutes(start)}–${formatMinutes(end)} · " +
-        stringResource(Res.string.shift_duration, work / 60, work % 60)
+        stringResource(Res.string.shift_duration, work / 60, (work % 60).toString().padStart(2, '0'))
 }
 
 @Composable

@@ -23,6 +23,9 @@ data class ShiftEntity(
     val startMinutes: Int? = null,
     val endMinutes: Int? = null,
     @ColumnInfo(defaultValue = "0") val breakMinutes: Int = 0,
+    /** Reservadas (v3), **sin uso**: el cálculo de sueldo está aplazado. Se mantienen para no romper la migración 2→3. */
+    @ColumnInfo(defaultValue = "PerShift") val payMode: String = "PerShift",
+    @ColumnInfo(defaultValue = "0") val payCents: Long = 0,
 )
 
 /** Un turno de un día en una posición (`slot` 0 o 1: máximo dos turnos por día). `date` en ISO (yyyy-MM-dd). */

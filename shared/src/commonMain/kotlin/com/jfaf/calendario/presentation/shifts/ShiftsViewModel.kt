@@ -100,3 +100,4 @@ internal fun parseMinutes(text: String): Int? {
 
 internal fun formatMinutes(minutes: Int): String =
     "${(minutes / 60).toString().padStart(2, '0')}:${(minutes % 60).toString().padStart(2, '0')}"
+

@@ -48,7 +48,7 @@
     <string name="delete_shift_message">Los días que lo usen dejarán de mostrarlo.</string>
     <string name="move_up">Subir</string>
     <string name="move_down">Bajar</string>
-    <string name="shift_duration">%1$d h %2$02d min</string>
+    <string name="shift_duration">%1$d h %2$s min</string>
     <string name="error_name_required">Escribe un nombre.</string>
     <string name="error_abbreviation_required">Escribe una abreviatura.</string>
     <string name="error_abbreviation_too_long">La abreviatura admite como máximo 3 caracteres.</string>
@@ -79,4 +79,17 @@
     <string name="theme_system">Seguir el sistema</string>
     <string name="theme_light">Claro</string>
     <string name="theme_dark">Oscuro</string>
+
+    <string name="stats_title">Estadísticas</string>
+    <string name="period_this_month">Este mes</string>
+    <string name="period_last_month">Mes anterior</string>
+    <string name="period_this_year">Este año</string>
+    <string name="period_last_30">Últimos 30 días</string>
+    <string name="period_custom">Personalizado</string>
+    <string name="stats_total_hours">Horas</string>
+    <string name="stats_total_shifts">Turnos</string>
+    <string name="stats_days_worked">Días con turno</string>
+    <string name="stats_by_shift">Por turno</string>
+    <string name="stats_count">%1$d turnos</string>
+    <string name="stats_empty">No hay turnos en este periodo.</string>
 </resources>

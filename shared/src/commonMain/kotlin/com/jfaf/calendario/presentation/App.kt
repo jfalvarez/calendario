@@ -19,12 +19,14 @@ import com.jfaf.calendario.presentation.calendar.CalendarScreen
 import com.jfaf.calendario.presentation.settings.SettingsScreen
 import com.jfaf.calendario.presentation.settings.SettingsViewModel
 import com.jfaf.calendario.presentation.shifts.ShiftsScreen
+import com.jfaf.calendario.presentation.stats.StatsScreen
 import org.koin.compose.viewmodel.koinViewModel
 
 private object Routes {
     const val CALENDAR = "calendar"
     const val SHIFTS = "shifts"
     const val SETTINGS = "settings"
+    const val STATS = "stats"
 }
 
 /**
@@ -52,10 +54,12 @@ fun App(onDarkThemeChanged: (Boolean) -> Unit = {}) {
                     CalendarScreen(
                         onOpenShifts = { navController.navigate(Routes.SHIFTS) },
                         onOpenSettings = { navController.navigate(Routes.SETTINGS) },
+                        onOpenStats = { navController.navigate(Routes.STATS) },
                     )
                 }
                 composable(Routes.SHIFTS) { ShiftsScreen(onBack = { navController.popBackStack() }) }
                 composable(Routes.SETTINGS) { SettingsScreen(onBack = { navController.popBackStack() }) }
+                composable(Routes.STATS) { StatsScreen(onBack = { navController.popBackStack() }) }
             }
         }
     }

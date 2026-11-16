@@ -12,9 +12,9 @@ import kotlinx.coroutines.Dispatchers
 
 @Database(
     entities = [ShiftEntity::class, ShiftAssignmentEntity::class],
-    version = 2, // 2: horario del turno (inicio, fin, descanso)
+    version = 3, // 2: horario del turno; 3: pago del turno (modo e importe)
     exportSchema = true,
-    autoMigrations = [AutoMigration(from = 1, to = 2)],
+    autoMigrations = [AutoMigration(from = 1, to = 2), AutoMigration(from = 2, to = 3)],
 )
 @ConstructedBy(CalendarDatabaseConstructor::class)
 abstract class CalendarDatabase : RoomDatabase() {

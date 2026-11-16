@@ -83,4 +83,5 @@ class ShiftsViewModelTest {
             repo.observeShifts().first().map { it.id },
         )
     }
+
 }
