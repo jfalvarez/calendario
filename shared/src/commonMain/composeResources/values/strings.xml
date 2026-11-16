@@ -75,6 +75,13 @@
 
     <string name="more_options">Más opciones</string>
     <string name="settings_title">Ajustes</string>
+    <string name="app_style">Estilo</string>
+    <string name="style_pop">Pop</string>
+    <string name="style_pop_desc">Días pintados con el color del turno. Vivo y atrevido.</string>
+    <string name="style_sorbete">Sorbete</string>
+    <string name="style_sorbete_desc">Pastel suave con tarjetas. Calmado y moderno.</string>
+    <string name="style_neon">Neón</string>
+    <string name="style_neon_desc">Oscuro con acento lima y puntos de color.</string>
     <string name="theme">Tema</string>
     <string name="theme_system">Seguir el sistema</string>
     <string name="theme_light">Claro</string>

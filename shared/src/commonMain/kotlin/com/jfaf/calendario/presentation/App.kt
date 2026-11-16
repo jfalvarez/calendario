@@ -2,10 +2,8 @@ package com.jfaf.calendario.presentation
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
+import com.jfaf.calendario.presentation.theme.CalendarioTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -14,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.jfaf.calendario.domain.model.AppStyle
 import com.jfaf.calendario.domain.model.ThemeMode
 import com.jfaf.calendario.presentation.calendar.CalendarScreen
 import com.jfaf.calendario.presentation.settings.SettingsScreen
@@ -37,6 +36,7 @@ private object Routes {
 fun App(onDarkThemeChanged: (Boolean) -> Unit = {}) {
     val settings: SettingsViewModel = koinViewModel()
     val mode by settings.themeMode.collectAsState()
+    val style by settings.appStyle.collectAsState()
     val systemDark = isSystemInDarkTheme()
     val darkTheme = when (mode) {
         ThemeMode.Dark -> true
@@ -45,9 +45,9 @@ fun App(onDarkThemeChanged: (Boolean) -> Unit = {}) {
     }
     LaunchedEffect(darkTheme) { onDarkThemeChanged(darkTheme) }
 
-    MaterialTheme(colorScheme = if (darkTheme) darkColorScheme() else lightColorScheme()) {
+    CalendarioTheme(style ?: AppStyle.Pop, darkTheme) {
         Surface(modifier = Modifier.fillMaxSize()) {
-            if (mode == null) return@Surface // ajustes aún sin leer: sólo el fondo, sin destello de tema
+            if (mode == null || style == null) return@Surface // ajustes aún sin leer: sólo el fondo, sin destello de tema
             val navController = rememberNavController()
             NavHost(navController, startDestination = Routes.CALENDAR) {
                 composable(Routes.CALENDAR) {

@@ -1,5 +1,15 @@
 package com.jfaf.calendario.presentation.stats
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.CardDefaults
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
+import com.jfaf.calendario.domain.model.AppStyle
+import com.jfaf.calendario.presentation.theme.LocalAppStyle
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -140,16 +150,17 @@ private fun PeriodChip(
 @Composable
 private fun Summary(stats: PeriodStats) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        SummaryCard(Res.string.stats_total_hours, duration(stats.totalMinutes), Modifier.weight(1f))
-        SummaryCard(Res.string.stats_total_shifts, "${stats.totalShifts}", Modifier.weight(1f))
-        SummaryCard(Res.string.stats_days_worked, "${stats.daysWorked}", Modifier.weight(1f))
+        SummaryCard(Res.string.stats_total_hours, duration(stats.totalMinutes), 0, Modifier.weight(1f))
+        SummaryCard(Res.string.stats_total_shifts, "${stats.totalShifts}", 1, Modifier.weight(1f))
+        SummaryCard(Res.string.stats_days_worked, "${stats.daysWorked}", 2, Modifier.weight(1f))
     }
     if (stats.perShift.isEmpty()) {
         Text(stringResource(Res.string.stats_empty))
         return
     }
     Text(stringResource(Res.string.stats_by_shift), style = MaterialTheme.typography.titleMedium)
-    stats.perShift.forEach { ShiftStatsRow(it) }
+    val maxMinutes = stats.perShift.maxOf { it.minutes }
+    stats.perShift.forEach { ShiftStatsRow(it, maxMinutes) }
 }
 
 @Composable
@@ -157,32 +168,61 @@ private fun duration(minutes: Int): String =
     stringResource(Res.string.shift_duration, minutes / 60, (minutes % 60).toString().padStart(2, '0'))
 
 @Composable
-private fun SummaryCard(label: StringResource, value: String, modifier: Modifier) {
-    Card(modifier) {
-        Column(Modifier.padding(12.dp)) {
+private fun SummaryCard(label: StringResource, value: String, index: Int, modifier: Modifier) {
+    val style = LocalAppStyle.current
+    val colors = MaterialTheme.colorScheme
+    // Pop: tarjetas de colores distintos. Sorbete: tonales. Neón: contorno con el número en el acento.
+    val (container, content) = when (style) {
+        AppStyle.Pop -> when (index % 3) {
+            0 -> colors.primaryContainer to colors.onPrimaryContainer
+            1 -> colors.secondaryContainer to colors.onSecondaryContainer
+            else -> colors.tertiaryContainer to colors.onTertiaryContainer
+        }
+        AppStyle.Sorbete -> colors.surfaceContainerLow to colors.onSurface
+        AppStyle.Neon -> Color.Transparent to colors.onSurface
+    }
+    Card(
+        modifier,
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(containerColor = container, contentColor = content),
+        border = if (style == AppStyle.Neon) BorderStroke(1.dp, colors.outlineVariant) else null,
+    ) {
+        Column(Modifier.padding(14.dp)) {
             Text(stringResource(label), style = MaterialTheme.typography.labelMedium)
-            Text(value, style = MaterialTheme.typography.titleMedium)
+            Text(
+                value,
+                style = MaterialTheme.typography.titleLarge,
+                color = if (style == AppStyle.Neon) colors.primary else content,
+            )
         }
     }
 }
 
 @Composable
-private fun ShiftStatsRow(item: ShiftStats) {
+private fun ShiftStatsRow(item: ShiftStats, maxMinutes: Int) {
+    val style = LocalAppStyle.current
+    val share = if (maxMinutes > 0) (item.minutes.toFloat() / maxMinutes).coerceIn(0.04f, 1f) else 0.04f
     Row(
         Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Box(
-            Modifier.width(40.dp).heightIn(min = 32.dp).background(Color(item.shift.colorArgb), RoundedCornerShape(6.dp)),
+            Modifier.width(44.dp).heightIn(min = 36.dp)
+                .background(Color(item.shift.colorArgb), if (style == AppStyle.Neon) CircleShape else MaterialTheme.shapes.medium),
             contentAlignment = Alignment.Center,
-        ) { Text(item.shift.abbreviation, color = item.shift.color.onShiftColor, fontSize = 14.sp) }
-        Column(Modifier.weight(1f)) {
+        ) { Text(item.shift.abbreviation, color = item.shift.color.onShiftColor, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold) }
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(item.shift.name, style = MaterialTheme.typography.titleSmall)
             Text(
                 "${stringResource(Res.string.stats_count, item.count)} · ${duration(item.minutes)}",
                 style = MaterialTheme.typography.bodySmall,
             )
+            // Barra proporcional a las horas del turno con más horas.
+            Box(Modifier.fillMaxWidth().height(if (style == AppStyle.Neon) 4.dp else 8.dp).clip(CircleShape)
+                .background(MaterialTheme.colorScheme.surfaceContainerHighest)) {
+                Box(Modifier.fillMaxWidth(share).fillMaxHeight().background(Color(item.shift.colorArgb), CircleShape))
+            }
         }
     }
 }

@@ -1,5 +1,12 @@
 package com.jfaf.calendario.presentation.shifts
 
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.Surface
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.text.font.FontWeight
+import com.jfaf.calendario.domain.model.AppStyle
+import com.jfaf.calendario.presentation.theme.LocalAppStyle
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -96,7 +103,7 @@ fun ShiftsContent(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = onAdd) {
+            FloatingActionButton(onClick = onAdd, shape = MaterialTheme.shapes.large) {
                 Icon(Icons.Filled.Add, stringResource(Res.string.add_shift))
             }
         },
@@ -142,26 +149,45 @@ private fun ShiftRow(
     onMove: (Int) -> Unit,
     onDelete: () -> Unit,
 ) {
-    Row(
-        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 6.dp, horizontal = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    val style = LocalAppStyle.current
+    val colors = MaterialTheme.colorScheme
+    // Pop: tarjeta con el color del turno. Sorbete: tarjeta tonal. Neón: fila plana sobre el fondo.
+    val container = when (style) {
+        AppStyle.Pop -> shift.color
+        AppStyle.Sorbete -> colors.surfaceContainerLow
+        AppStyle.Neon -> Color.Transparent
+    }
+    val fg = if (style == AppStyle.Pop) shift.color.onShiftColor else colors.onSurface
+    val iconColors = IconButtonDefaults.iconButtonColors(contentColor = fg, disabledContentColor = fg.copy(alpha = 0.38f))
+    Surface(
+        Modifier.fillMaxWidth().padding(vertical = if (style == AppStyle.Neon) 2.dp else 4.dp),
+        shape = MaterialTheme.shapes.large,
+        color = container,
+        contentColor = fg,
     ) {
-        Box(
-            Modifier.size(44.dp).background(Color(shift.colorArgb), RoundedCornerShape(8.dp)),
-            contentAlignment = Alignment.Center,
-        ) { Text(shift.abbreviation, color = shift.color.onShiftColor, fontSize = 16.sp) }
-        Column(Modifier.weight(1f)) {
-            Text(shift.name, style = MaterialTheme.typography.titleMedium)
-            scheduleText(shift)?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+        Row(
+            Modifier.clickable(onClick = onClick).padding(vertical = 8.dp, horizontal = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            val badgeBg = if (style == AppStyle.Pop) colors.surface else shift.color
+            val badgeFg = if (style == AppStyle.Pop) colors.onSurface else shift.color.onShiftColor
+            Box(
+                Modifier.size(46.dp).background(badgeBg, if (style == AppStyle.Sorbete) MaterialTheme.shapes.medium else CircleShape),
+                contentAlignment = Alignment.Center,
+            ) { Text(shift.abbreviation, color = badgeFg, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold) }
+            Column(Modifier.weight(1f)) {
+                Text(shift.name, style = MaterialTheme.typography.titleMedium)
+                scheduleText(shift)?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+            }
+            IconButton(onClick = { onMove(-1) }, enabled = canMoveUp, colors = iconColors) {
+                Icon(Icons.Filled.KeyboardArrowUp, stringResource(Res.string.move_up))
+            }
+            IconButton(onClick = { onMove(1) }, enabled = canMoveDown, colors = iconColors) {
+                Icon(Icons.Filled.KeyboardArrowDown, stringResource(Res.string.move_down))
+            }
+            IconButton(onClick = onDelete, colors = iconColors) { Icon(Icons.Filled.Delete, stringResource(Res.string.delete)) }
         }
-        IconButton(onClick = { onMove(-1) }, enabled = canMoveUp) {
-            Icon(Icons.Filled.KeyboardArrowUp, stringResource(Res.string.move_up))
-        }
-        IconButton(onClick = { onMove(1) }, enabled = canMoveDown) {
-            Icon(Icons.Filled.KeyboardArrowDown, stringResource(Res.string.move_down))
-        }
-        IconButton(onClick = onDelete) { Icon(Icons.Filled.Delete, stringResource(Res.string.delete)) }
     }
 }
 

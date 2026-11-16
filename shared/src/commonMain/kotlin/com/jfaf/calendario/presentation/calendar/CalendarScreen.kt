@@ -58,6 +58,18 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.Surface
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.text.font.FontWeight
+import com.jfaf.calendario.domain.model.AppStyle
+import com.jfaf.calendario.presentation.theme.LocalAppStyle
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
@@ -138,19 +150,20 @@ fun CalendarContent(state: CalendarUiState, actions: CalendarActions) {
     val weekdays = stringArrayResource(Res.array.weekday_short)
     Column(Modifier.fillMaxSize().safeDrawingPadding().padding(8.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = actions.onPreviousMonth) {
+            FilledTonalIconButton(onClick = actions.onPreviousMonth) {
                 Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, stringResource(Res.string.previous_month))
             }
             Text(
                 "${monthNames[state.month.monthNumber - 1]} ${state.month.year}",
-                style = MaterialTheme.typography.titleLarge,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.ExtraBold,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.weight(1f),
             )
-            IconButton(onClick = actions.onNextMonth) {
+            FilledTonalIconButton(onClick = actions.onNextMonth) {
                 Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, stringResource(Res.string.next_month))
             }
-            TextButton(onClick = actions.onToday) { Text(stringResource(Res.string.today)) }
+            FilledTonalButton(onClick = actions.onToday) { Text(stringResource(Res.string.today)) }
             OverflowMenu(actions.onOpenShifts, actions.onOpenStats, actions.onOpenSettings)
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -187,9 +200,17 @@ fun CalendarContent(state: CalendarUiState, actions: CalendarActions) {
                 }
             }
         }
-        when (state.mode) {
-            CalendarMode.Paint -> PaintBar(state, actions)
-            CalendarMode.Edit -> EditBar(state, actions)
+        Surface(
+            Modifier.fillMaxWidth().padding(top = 8.dp),
+            shape = MaterialTheme.shapes.large,
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        ) {
+            Column(Modifier.padding(horizontal = 12.dp, vertical = 6.dp)) {
+                when (state.mode) {
+                    CalendarMode.Paint -> PaintBar(state, actions)
+                    CalendarMode.Edit -> EditBar(state, actions)
+                }
+            }
         }
     }
 
@@ -341,22 +362,73 @@ private fun RowScope.DayCell(
     onClick: () -> Unit,
     onLongClick: () -> Unit,
 ) {
-    val border = if (isToday) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
-    val background = if (isSelected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent
+    val style = LocalAppStyle.current
+    val colors = MaterialTheme.colorScheme
+    val first = day.shifts.firstOrNull()
+    // Pop: el día entero se pinta con el color de su primer turno.
+    val fillShift = if (style == AppStyle.Pop) first else null
+    val base = when {
+        fillShift != null -> fillShift.color
+        style == AppStyle.Sorbete && isToday -> colors.primary
+        style == AppStyle.Neon -> Color.Transparent
+        else -> colors.surfaceContainerLow
+    }
+    val background by animateColorAsState(if (isSelected) colors.primaryContainer else base)
+    val scale by animateFloatAsState(if (isSelected) 0.93f else 1f, spring(dampingRatio = Spring.DampingRatioMediumBouncy))
+    val shape = MaterialTheme.shapes.small
+    val numberColor = when {
+        isSelected -> colors.onPrimaryContainer
+        fillShift != null -> fillShift.color.onShiftColor
+        style == AppStyle.Sorbete && isToday -> colors.onPrimary
+        else -> colors.onSurface
+    }
+    val outline = when {
+        isSelected -> colors.primary
+        style == AppStyle.Pop && isToday -> colors.onSurface
+        else -> null
+    }
     Column(
         Modifier
             .weight(1f)
             .fillMaxSize()
-            .padding(1.dp)
-            .background(background, RoundedCornerShape(4.dp))
-            .border(if (isToday || isSelected) 2.dp else 1.dp, border, RoundedCornerShape(4.dp))
-            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
             .padding(2.dp)
-            .alpha(if (day.inCurrentMonth) 1f else 0.4f),
+            .scale(scale)
+            .clip(shape)
+            .background(background)
+            .then(if (outline != null) Modifier.border(if (isSelected) 2.dp else 3.dp, outline, shape) else Modifier)
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
+            .padding(3.dp)
+            .alpha(if (day.inCurrentMonth) 1f else 0.35f),
+        horizontalAlignment = if (style == AppStyle.Neon) Alignment.CenterHorizontally else Alignment.Start,
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
-        Text("${day.date.day}", fontSize = 12.sp)
-        day.shifts.forEach { ShiftTag(it, Modifier.fillMaxWidth()) }
+        if (style == AppStyle.Neon) {
+            Box(
+                Modifier.size(24.dp).background(if (isToday) colors.primary else Color.Transparent, CircleShape),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    "${day.date.day}", fontSize = 12.sp,
+                    fontWeight = if (isToday) FontWeight.ExtraBold else FontWeight.Medium,
+                    color = if (isToday) colors.onPrimary else numberColor,
+                )
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                day.shifts.forEach { Box(Modifier.size(8.dp).background(it.color, CircleShape)) }
+            }
+        } else {
+            Text(
+                "${day.date.day}", fontSize = 12.sp,
+                fontWeight = if (isToday || fillShift != null) FontWeight.ExtraBold else FontWeight.SemiBold,
+                color = numberColor,
+            )
+            if (fillShift != null) {
+                Text(fillShift.abbreviation, color = numberColor, fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                day.shifts.drop(1).forEach { ShiftTag(it, Modifier.fillMaxWidth()) }
+            } else {
+                day.shifts.forEach { ShiftTag(it, Modifier.fillMaxWidth()) }
+            }
+        }
     }
 }
 
@@ -364,11 +436,11 @@ private fun RowScope.DayCell(
 private fun ShiftTag(shift: Shift, modifier: Modifier = Modifier) {
     Box(
         modifier
-            .heightIn(min = 16.dp)
-            .background(shift.color, RoundedCornerShape(3.dp)),
+            .heightIn(min = 17.dp)
+            .background(shift.color, CircleShape),
         contentAlignment = Alignment.Center,
     ) {
-        Text(shift.abbreviation, color = shift.color.onShiftColor, fontSize = 11.sp, maxLines = 1)
+        Text(shift.abbreviation, color = shift.color.onShiftColor, fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1)
     }
 }
 

@@ -22,6 +22,8 @@ import com.jfaf.calendario.data.repository.SystemTodayProvider
 import com.jfaf.calendario.data.repository.UuidIdGenerator
 import com.jfaf.calendario.domain.repository.IdGenerator
 import com.jfaf.calendario.domain.repository.SettingsRepository
+import com.jfaf.calendario.domain.usecase.ObserveAppStyleUseCase
+import com.jfaf.calendario.domain.usecase.SetAppStyleUseCase
 import com.jfaf.calendario.domain.usecase.ObserveThemeModeUseCase
 import com.jfaf.calendario.domain.usecase.SetThemeModeUseCase
 import com.jfaf.calendario.presentation.settings.AccountViewModel
@@ -92,6 +94,8 @@ val domainModule = module {
     factory { RequestSyncUseCase(get()) }
     factory { ObserveThemeModeUseCase(get()) }
     factory { SetThemeModeUseCase(get()) }
+    factory { ObserveAppStyleUseCase(get()) }
+    factory { SetAppStyleUseCase(get()) }
     factory { CopyDaysUseCase(get()) }
     factory { PasteDaysUseCase(get()) }
     factory { ClearDaysUseCase(get()) }
