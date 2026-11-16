@@ -12,6 +12,8 @@ import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.postgrest.Postgrest
+import io.github.jan.supabase.serializer.KotlinXSerializer
+import kotlinx.serialization.json.Json
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -70,6 +72,15 @@ val dataModule = module {
             supabaseUrl = if (config.isConfigured) config.url else "https://not-configured.invalid",
             supabaseKey = config.anonKey.ifBlank { "not-configured" },
         ) {
+            // Los nulos deben enviarse explícitamente: si `deleted_at: null` se omite, el upsert no limpia el borrado
+            // lógico que ya hay en el servidor y la fila repintada reaparece borrada al descargar.
+            defaultSerializer = KotlinXSerializer(
+                Json {
+                    ignoreUnknownKeys = true
+                    encodeDefaults = true
+                    explicitNulls = true
+                },
+            )
             install(Auth)
             install(Postgrest)
         }
