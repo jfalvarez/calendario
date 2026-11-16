@@ -23,4 +23,6 @@ data class CalendarUiState(
     val selection: Set<LocalDate> = emptySet(),
     val hasClipboard: Boolean = false,
     val dialog: CalendarDialog? = null,
+    /** Estado de la sincronización con el servidor; `null` si no hay cuenta (no se muestra). */
+    val syncIndicator: SyncIndicator? = null,
 )

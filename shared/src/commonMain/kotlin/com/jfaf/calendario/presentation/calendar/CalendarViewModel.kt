@@ -10,6 +10,8 @@ import com.jfaf.calendario.domain.usecase.ClearDaysUseCase
 import com.jfaf.calendario.domain.usecase.CopyDaysUseCase
 import com.jfaf.calendario.domain.usecase.ObserveMonthUseCase
 import com.jfaf.calendario.domain.usecase.ObserveShiftsUseCase
+import com.jfaf.calendario.domain.usecase.ObserveSyncStateUseCase
+import com.jfaf.calendario.domain.usecase.RequestSyncUseCase
 import com.jfaf.calendario.domain.usecase.PaintDayUseCase
 import com.jfaf.calendario.domain.usecase.PasteDaysUseCase
 import com.jfaf.calendario.domain.usecase.RepeatDaysUseCase
@@ -35,6 +37,8 @@ class CalendarViewModel(
     private val clearDays: ClearDaysUseCase,
     private val assignShift: AssignShiftToDaysUseCase,
     private val repeatDays: RepeatDaysUseCase,
+    observeSync: ObserveSyncStateUseCase,
+    private val requestSync: RequestSyncUseCase,
     todayProvider: TodayProvider,
 ) : ViewModel() {
     private val today = todayProvider.today()
@@ -52,10 +56,11 @@ class CalendarViewModel(
         val selection: Set<LocalDate>,
         val hasClipboard: Boolean,
         val dialog: CalendarDialog?,
+        val syncIndicator: SyncIndicator?,
     )
 
-    private val editState = combine(mode, selection, clipboard, dialog) { m, s, c, d ->
-        EditState(m, s, c != null, d)
+    private val editState = combine(mode, selection, clipboard, dialog, observeSync()) { m, s, c, d, sync ->
+        EditState(m, s, c != null, d, sync.toIndicator())
     }
 
     val uiState: StateFlow<CalendarUiState> = combine(
@@ -68,6 +73,7 @@ class CalendarViewModel(
         CalendarUiState(
             month = m, today = today, weeks = weeks, shifts = shifts, paintShiftId = paintId,
             mode = edit.mode, selection = edit.selection, hasClipboard = edit.hasClipboard, dialog = edit.dialog,
+            syncIndicator = edit.syncIndicator,
         )
     }.stateIn(
         viewModelScope,
@@ -108,6 +114,9 @@ class CalendarViewModel(
         selection.update { it + range }
         anchor = date
     }
+
+    /** Tocar el indicador de sincronización: sincronizar ahora. */
+    fun onSyncClick() = requestSync()
 
     fun onClearSelection() {
         selection.value = emptySet()

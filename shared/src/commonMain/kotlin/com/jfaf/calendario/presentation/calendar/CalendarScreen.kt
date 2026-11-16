@@ -10,6 +10,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -24,6 +27,10 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Brush
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CloudDone
+import androidx.compose.material.icons.filled.CloudOff
+import androidx.compose.material.icons.filled.CloudQueue
+import androidx.compose.material.icons.filled.SyncProblem
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.ContentCut
@@ -31,6 +38,7 @@ import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
@@ -89,6 +97,7 @@ class CalendarActions(
     val onDismissDialog: () -> Unit = {},
     val onAssign: (shiftId: String, asSecond: Boolean) -> Unit = { _, _ -> },
     val onRepeat: (times: Int) -> Unit = {},
+    val onSyncClick: () -> Unit = {},
 )
 
 /** Pantalla con estado (conecta el ViewModel) y contenido sin estado (testeable/previsualizable). */
@@ -117,6 +126,7 @@ fun CalendarScreen(onOpenShifts: () -> Unit, onOpenSettings: () -> Unit, onOpenS
             onDismissDialog = viewModel::onDismissDialog,
             onAssign = viewModel::onAssign,
             onRepeat = viewModel::onRepeat,
+            onSyncClick = viewModel::onSyncClick,
         )
     }
     CalendarContent(state, actions)
@@ -154,6 +164,8 @@ fun CalendarContent(state: CalendarUiState, actions: CalendarActions) {
                 onClick = { actions.onModeChange(CalendarMode.Edit) },
                 label = { Text(stringResource(Res.string.mode_edit)) },
             )
+            Spacer(Modifier.weight(1f))
+            state.syncIndicator?.let { SyncStatus(it, actions.onSyncClick) }
         }
         Row(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
             weekdays.forEach {
@@ -381,5 +393,46 @@ private fun OverflowMenu(onOpenShifts: () -> Unit, onOpenStats: () -> Unit, onOp
                 onClick = { expanded = false; onOpenSettings() },
             )
         }
+    }
+}
+
+/** Icono y texto breve del estado de sincronización; al tocarlo se sincroniza. */
+@Composable
+private fun SyncStatus(indicator: SyncIndicator, onClick: () -> Unit) {
+    val label = stringResource(
+        when (indicator) {
+            SyncIndicator.Pending -> Res.string.sync_status_pending
+            SyncIndicator.Syncing -> Res.string.sync_status_syncing
+            SyncIndicator.Synced -> Res.string.sync_status_synced
+            SyncIndicator.Offline -> Res.string.sync_status_offline
+            SyncIndicator.Error -> Res.string.sync_status_error
+        }
+    )
+    val problem = indicator == SyncIndicator.Offline || indicator == SyncIndicator.Error
+    val color = if (problem) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+    Row(
+        Modifier
+            .clip(RoundedCornerShape(16.dp))
+            .clickable(enabled = indicator != SyncIndicator.Syncing, onClick = onClick)
+            .padding(horizontal = 8.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        if (indicator == SyncIndicator.Syncing) {
+            CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp, color = color)
+        } else {
+            Icon(
+                when (indicator) {
+                    SyncIndicator.Synced -> Icons.Filled.CloudDone
+                    SyncIndicator.Offline -> Icons.Filled.CloudOff
+                    SyncIndicator.Error -> Icons.Filled.SyncProblem
+                    else -> Icons.Filled.CloudQueue
+                },
+                contentDescription = null,
+                tint = color,
+                modifier = Modifier.size(18.dp),
+            )
+        }
+        Text(label, style = MaterialTheme.typography.labelSmall, color = color, maxLines = 1)
     }
 }

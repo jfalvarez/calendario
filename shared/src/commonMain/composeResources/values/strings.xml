@@ -116,4 +116,10 @@
     <string name="auth_error_unknown">No se pudo completar la operación.</string>
 
     <string name="auth_error_confirm_email">Cuenta creada. Confirma tu correo con el enlace que te hemos enviado y después inicia sesión.</string>
+
+    <string name="sync_status_pending">Pendiente</string>
+    <string name="sync_status_syncing">Sincronizando…</string>
+    <string name="sync_status_synced">Sincronizado</string>
+    <string name="sync_status_offline">Sin conexión</string>
+    <string name="sync_status_error">Error al sincronizar</string>
 </resources>
