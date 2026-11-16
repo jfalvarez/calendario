@@ -1,11 +1,16 @@
 package com.jfaf.calendario.di
 
 import com.jfaf.calendario.data.local.CalendarDatabase
+import com.jfaf.calendario.data.prefs.DataStoreSettingsRepository
 import com.jfaf.calendario.data.repository.RoomShiftAssignmentRepository
 import com.jfaf.calendario.data.repository.RoomShiftRepository
 import com.jfaf.calendario.data.repository.SystemTodayProvider
 import com.jfaf.calendario.data.repository.UuidIdGenerator
 import com.jfaf.calendario.domain.repository.IdGenerator
+import com.jfaf.calendario.domain.repository.SettingsRepository
+import com.jfaf.calendario.domain.usecase.ObserveThemeModeUseCase
+import com.jfaf.calendario.domain.usecase.SetThemeModeUseCase
+import com.jfaf.calendario.presentation.settings.SettingsViewModel
 import com.jfaf.calendario.domain.usecase.AssignShiftToDaysUseCase
 import com.jfaf.calendario.domain.usecase.ClearDaysUseCase
 import com.jfaf.calendario.domain.usecase.CopyDaysUseCase
@@ -33,12 +38,15 @@ val dataModule = module {
     single<ShiftAssignmentRepository> { RoomShiftAssignmentRepository(get()) }
     single<TodayProvider> { SystemTodayProvider() }
     single<IdGenerator> { UuidIdGenerator() }
+    single<SettingsRepository> { DataStoreSettingsRepository(get()) }
 }
 
 val domainModule = module {
     factory { ObserveShiftsUseCase(get()) }
     factory { ObserveMonthUseCase(get(), get()) }
     factory { PaintDayUseCase(get()) }
+    factory { ObserveThemeModeUseCase(get()) }
+    factory { SetThemeModeUseCase(get()) }
     factory { CopyDaysUseCase(get()) }
     factory { PasteDaysUseCase(get()) }
     factory { ClearDaysUseCase(get()) }
@@ -52,6 +60,7 @@ val domainModule = module {
 val presentationModule = module {
     viewModelOf(::CalendarViewModel)
     viewModelOf(::ShiftsViewModel)
+    viewModelOf(::SettingsViewModel)
 }
 
 val appModules = listOf(dataModule, domainModule, presentationModule)

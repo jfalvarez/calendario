@@ -72,4 +72,11 @@
     <string name="repeat_hint">El bloque seleccionado (del primer al último día) se repite a continuación.</string>
     <string name="repeat_times">Repeticiones</string>
     <string name="apply">Aplicar</string>
+
+    <string name="more_options">Más opciones</string>
+    <string name="settings_title">Ajustes</string>
+    <string name="theme">Tema</string>
+    <string name="theme_system">Seguir el sistema</string>
+    <string name="theme_light">Claro</string>
+    <string name="theme_dark">Oscuro</string>
 </resources>

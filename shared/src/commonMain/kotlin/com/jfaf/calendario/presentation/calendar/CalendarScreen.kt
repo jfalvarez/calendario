@@ -20,7 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Brush
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
@@ -29,6 +29,8 @@ import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -66,6 +68,7 @@ class CalendarActions(
     val onNextMonth: () -> Unit = {},
     val onToday: () -> Unit = {},
     val onOpenShifts: () -> Unit = {},
+    val onOpenSettings: () -> Unit = {},
     val onModeChange: (CalendarMode) -> Unit = {},
     val onShiftSelected: (String) -> Unit = {},
     val onDayClick: (LocalDate) -> Unit = {},
@@ -84,14 +87,15 @@ class CalendarActions(
 
 /** Pantalla con estado (conecta el ViewModel) y contenido sin estado (testeable/previsualizable). */
 @Composable
-fun CalendarScreen(onOpenShifts: () -> Unit, viewModel: CalendarViewModel = koinViewModel()) {
+fun CalendarScreen(onOpenShifts: () -> Unit, onOpenSettings: () -> Unit, viewModel: CalendarViewModel = koinViewModel()) {
     val state by viewModel.uiState.collectAsState()
-    val actions = remember(viewModel, onOpenShifts) {
+    val actions = remember(viewModel, onOpenShifts, onOpenSettings) {
         CalendarActions(
             onPreviousMonth = viewModel::onPreviousMonth,
             onNextMonth = viewModel::onNextMonth,
             onToday = viewModel::onToday,
             onOpenShifts = onOpenShifts,
+            onOpenSettings = onOpenSettings,
             onModeChange = viewModel::onModeChange,
             onShiftSelected = viewModel::onShiftSelected,
             onDayClick = viewModel::onDayClick,
@@ -130,9 +134,7 @@ fun CalendarContent(state: CalendarUiState, actions: CalendarActions) {
                 Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, stringResource(Res.string.next_month))
             }
             TextButton(onClick = actions.onToday) { Text(stringResource(Res.string.today)) }
-            IconButton(onClick = actions.onOpenShifts) {
-                Icon(Icons.AutoMirrored.Filled.List, stringResource(Res.string.manage_shifts))
-            }
+            OverflowMenu(actions.onOpenShifts, actions.onOpenSettings)
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             FilterChip(
@@ -328,5 +330,25 @@ private fun ShiftTag(shift: Shift, modifier: Modifier = Modifier) {
         contentAlignment = Alignment.Center,
     ) {
         Text(shift.abbreviation, color = Color.White, fontSize = 11.sp, maxLines = 1)
+    }
+}
+
+@Composable
+private fun OverflowMenu(onOpenShifts: () -> Unit, onOpenSettings: () -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    Box {
+        IconButton(onClick = { expanded = true }) {
+            Icon(Icons.Filled.MoreVert, stringResource(Res.string.more_options))
+        }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            DropdownMenuItem(
+                text = { Text(stringResource(Res.string.manage_shifts)) },
+                onClick = { expanded = false; onOpenShifts() },
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(Res.string.settings_title)) },
+                onClick = { expanded = false; onOpenSettings() },
+            )
+        }
     }
 }

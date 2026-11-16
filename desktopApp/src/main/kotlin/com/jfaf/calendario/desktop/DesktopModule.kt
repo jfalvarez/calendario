@@ -1,6 +1,10 @@
 package com.jfaf.calendario.desktop
 
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
 import androidx.room.Room
+import com.jfaf.calendario.data.prefs.USER_PREFERENCES_FILE
+import com.jfaf.calendario.data.prefs.createPreferencesDataStore
 import com.jfaf.calendario.data.local.CALENDAR_DATABASE_NAME
 import com.jfaf.calendario.data.local.CalendarDatabase
 import com.jfaf.calendario.data.local.buildCalendarDatabase
@@ -16,6 +20,9 @@ fun appDataDir(): File {
 }
 
 fun desktopModule(dataDir: File = appDataDir()) = module {
+    single<DataStore<Preferences>> {
+        createPreferencesDataStore(File(dataDir, "datastore/$USER_PREFERENCES_FILE").absolutePath)
+    }
     single {
         buildCalendarDatabase(
             Room.databaseBuilder<CalendarDatabase>(name = File(dataDir, CALENDAR_DATABASE_NAME).absolutePath)

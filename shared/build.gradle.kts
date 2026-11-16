@@ -38,6 +38,7 @@ kotlin {
             api(libs.compose.mp.foundation)
             api(libs.compose.mp.material3)
             api(libs.compose.mp.icons.extended)
+            api(libs.androidx.datastore.preferences.core)
             api(libs.androidx.room.runtime)
             api(libs.androidx.sqlite.bundled)
             api(libs.koin.core)
