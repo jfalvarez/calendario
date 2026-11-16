@@ -42,3 +42,12 @@ data class ShiftAssignmentEntity(
     val deletedAt: Long?,
     val dirty: Boolean,
 )
+
+/** Festivo local marcado por el usuario. La fecha (yyyy-MM-dd) es su identidad; sincroniza como el resto. */
+@Entity(tableName = "local_holidays")
+data class LocalHolidayEntity(
+    @PrimaryKey val date: String,
+    val updatedAt: Long,
+    val deletedAt: Long?,
+    val dirty: Boolean,
+)

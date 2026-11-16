@@ -1,8 +1,10 @@
 package com.jfaf.calendario.data.sync
 
+import com.jfaf.calendario.data.local.LocalHolidayEntity
 import com.jfaf.calendario.data.local.ShiftAssignmentEntity
 import com.jfaf.calendario.data.local.ShiftEntity
 import com.jfaf.calendario.data.remote.RemoteAssignment
+import com.jfaf.calendario.data.remote.RemoteLocalHoliday
 import com.jfaf.calendario.data.remote.RemoteShift
 
 /**
@@ -42,6 +44,13 @@ internal fun mergeAssignment(local: ShiftAssignmentEntity?, remote: RemoteAssign
         dirty = false,
     )
 }
+
+internal fun mergeHoliday(local: LocalHolidayEntity?, remote: RemoteLocalHoliday): LocalHolidayEntity? {
+    if (local != null && local.updatedAt > remote.updatedAt) return null
+    return LocalHolidayEntity(remote.date, remote.updatedAt, remote.deletedAt, dirty = false)
+}
+
+internal fun LocalHolidayEntity.toRemote(ownerId: String) = RemoteLocalHoliday(ownerId, date, updatedAt, deletedAt)
 
 internal fun ShiftEntity.toRemote(ownerId: String) = RemoteShift(
     ownerId, id, name, abbreviation, colorArgb, sortOrder, startMinutes, endMinutes, breakMinutes, updatedAt, deletedAt,

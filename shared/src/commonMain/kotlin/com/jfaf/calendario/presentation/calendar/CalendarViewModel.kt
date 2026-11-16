@@ -15,6 +15,7 @@ import com.jfaf.calendario.domain.usecase.RequestSyncUseCase
 import com.jfaf.calendario.domain.usecase.PaintDayUseCase
 import com.jfaf.calendario.domain.usecase.PasteDaysUseCase
 import com.jfaf.calendario.domain.usecase.RepeatDaysUseCase
+import com.jfaf.calendario.domain.usecase.ToggleLocalHolidaysUseCase
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -37,6 +38,7 @@ class CalendarViewModel(
     private val clearDays: ClearDaysUseCase,
     private val assignShift: AssignShiftToDaysUseCase,
     private val repeatDays: RepeatDaysUseCase,
+    private val toggleLocalHolidays: ToggleLocalHolidaysUseCase,
     observeSync: ObserveSyncStateUseCase,
     private val requestSync: RequestSyncUseCase,
     todayProvider: TodayProvider,
@@ -137,6 +139,9 @@ class CalendarViewModel(
     }
 
     fun onDelete() = withSelection { dates -> clearDays(dates) }
+
+    /** Marca los días seleccionados como festivo local (o los desmarca si todos ya lo eran). */
+    fun onToggleLocalHoliday() = withSelection { dates -> toggleLocalHolidays(dates) }
 
     fun onAssignClick() = withSelection { dialog.value = CalendarDialog.Assign }
     fun onRepeatClick() = withSelection { dialog.value = CalendarDialog.Repeat }

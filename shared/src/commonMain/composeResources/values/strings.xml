@@ -68,6 +68,7 @@
     <string name="paste">Pegar</string>
     <string name="repeat">Repetir</string>
     <string name="clear_selection">Quitar selección</string>
+    <string name="local_holiday">Festivo local</string>
     <string name="repeat_title">Repetir selección</string>
     <string name="repeat_hint">El bloque seleccionado (del primer al último día) se repite a continuación.</string>
     <string name="repeat_times">Repeticiones</string>

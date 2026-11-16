@@ -36,6 +36,7 @@ import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.ContentCut
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
@@ -106,6 +107,7 @@ class CalendarActions(
     val onCut: () -> Unit = {},
     val onPaste: () -> Unit = {},
     val onDelete: () -> Unit = {},
+    val onToggleLocalHoliday: () -> Unit = {},
     val onAssignClick: () -> Unit = {},
     val onRepeatClick: () -> Unit = {},
     val onDismissDialog: () -> Unit = {},
@@ -135,6 +137,7 @@ fun CalendarScreen(onOpenShifts: () -> Unit, onOpenSettings: () -> Unit, onOpenS
             onCut = viewModel::onCut,
             onPaste = viewModel::onPaste,
             onDelete = viewModel::onDelete,
+            onToggleLocalHoliday = viewModel::onToggleLocalHoliday,
             onAssignClick = viewModel::onAssignClick,
             onRepeatClick = viewModel::onRepeatClick,
             onDismissDialog = viewModel::onDismissDialog,
@@ -293,6 +296,7 @@ private fun EditBar(state: CalendarUiState, actions: CalendarActions) {
             actions.onPaste()
         }
         ActionButton(Icons.Filled.Repeat, Res.string.repeat, hasSelection, actions.onRepeatClick)
+        ActionButton(Icons.Filled.Flag, Res.string.local_holiday, hasSelection, actions.onToggleLocalHoliday)
         ActionButton(Icons.Filled.Delete, Res.string.delete, hasSelection, actions.onDelete)
         ActionButton(Icons.Filled.Close, Res.string.clear_selection, hasSelection, actions.onClearSelection)
     }
@@ -392,7 +396,9 @@ private fun RowScope.DayCell(
     val background by animateColorAsState(if (isSelected) colors.primaryContainer else base)
     val scale by animateFloatAsState(if (isSelected) 0.93f else 1f, spring(dampingRatio = Spring.DampingRatioMediumBouncy))
     val shape = MaterialTheme.shapes.small
+    // Festivo (nacional o local): el número del día siempre en rojo, sea cual sea el fondo.
     val numberColor = when {
+        day.holiday != null -> colors.error
         isSelected -> colors.onPrimaryContainer
         fillShift != null -> fillShift.color.onShiftColor
         style == AppStyle.Sorbete && isToday -> colors.onPrimary
@@ -426,7 +432,7 @@ private fun RowScope.DayCell(
                 Text(
                     "${day.date.day}", fontSize = 12.sp,
                     fontWeight = if (isToday) FontWeight.ExtraBold else FontWeight.Medium,
-                    color = if (isToday) colors.onPrimary else numberColor,
+                    color = if (isToday && day.holiday == null) colors.onPrimary else numberColor,
                 )
             }
             Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
@@ -439,7 +445,7 @@ private fun RowScope.DayCell(
                 color = numberColor,
             )
             if (fillShift != null) {
-                Text(fillShift.abbreviation, color = numberColor, fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                Text(fillShift.abbreviation, color = fillShift.color.onShiftColor, fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1)
                 day.shifts.drop(1).forEach { ShiftTag(it, Modifier.fillMaxWidth()) }
             } else {
                 day.shifts.forEach { ShiftTag(it, Modifier.fillMaxWidth()) }

@@ -51,6 +51,7 @@ class SyncEngine(
 ) : SyncRepository {
     private val shiftDao = db.shiftDao()
     private val assignmentDao = db.shiftAssignmentDao()
+    private val holidayDao = db.localHolidayDao()
     private val log = Logger.withTag("Sync")
     private val mutex = Mutex()
     private val requests = Channel<Unit>(Channel.CONFLATED)
@@ -85,7 +86,7 @@ class SyncEngine(
         _state.value = SyncState.Idle(lastSyncedAt)
         // Cambios locales pendientes → sincronizar tras una pausa (agrupa ediciones seguidas).
         launch {
-            combine(shiftDao.observeDirtyCount(), assignmentDao.observeDirtyCount()) { a, b -> a + b }
+            combine(shiftDao.observeDirtyCount(), assignmentDao.observeDirtyCount(), holidayDao.observeDirtyCount()) { a, b, c -> a + b + c }
                 .filter { it > 0 }
                 .debounce(debounceMs)
                 .collect { requestSync() }
@@ -126,6 +127,7 @@ class SyncEngine(
         val last = prefs.data.first()[LAST_USER_KEY]
         if (last != null && last != userId) {
             assignmentDao.deleteAll()
+            holidayDao.deleteAll()
             shiftDao.deleteAll()
             shiftDao.upsertAll(defaultShiftEntities())
         }
@@ -142,6 +144,11 @@ class SyncEngine(
         if (assignments.isNotEmpty()) {
             remote.upsertAssignments(assignments.map { it.toRemote(userId) })
             assignments.forEach { assignmentDao.markClean(it.id, it.updatedAt) }
+        }
+        val holidays = holidayDao.getDirty()
+        if (holidays.isNotEmpty()) {
+            remote.upsertHolidays(holidays.map { it.toRemote(userId) })
+            holidays.forEach { holidayDao.markClean(it.date, it.updatedAt) }
         }
     }
 
@@ -161,6 +168,14 @@ class SyncEngine(
             val local = assignmentDao.getByIds(assignments.map { it.id }).associateBy { it.id }
             assignmentDao.upsertAll(assignments.mapNotNull { mergeAssignment(local[it.id], it) })
             assignments.last().serverUpdatedAt?.let { cursor -> prefs.edit { it[assignmentKey] = cursor } }
+        }
+
+        val holidayKey = stringPreferencesKey("sync_cursor_holidays_$userId")
+        val holidays = remote.pullHolidays(prefs.data.first()[holidayKey])
+        if (holidays.isNotEmpty()) {
+            val local = holidayDao.getByDates(holidays.map { it.date }).associateBy { it.date }
+            holidayDao.upsertAll(holidays.mapNotNull { mergeHoliday(local[it.date], it) })
+            holidays.last().serverUpdatedAt?.let { cursor -> prefs.edit { it[holidayKey] = cursor } }
         }
     }
 

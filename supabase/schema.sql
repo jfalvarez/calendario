@@ -93,3 +93,34 @@ create policy assignments_insert on public.shift_assignments for insert to authe
   with check (owner_id = (select auth.uid()));
 create policy assignments_update on public.shift_assignments for update to authenticated
   using (owner_id = (select auth.uid())) with check (owner_id = (select auth.uid()));
+
+-- ---------------------------------------------------------------------------
+-- Festivos locales (marcados por el usuario). Se identifican por (owner_id, holiday_date).
+-- Mismo esquema de sincronización que el resto: borrado lógico + último cambio gana.
+-- ---------------------------------------------------------------------------
+create table if not exists public.local_holidays (
+  owner_id           uuid   not null default auth.uid() references auth.users (id) on delete cascade,
+  holiday_date       date   not null,
+  updated_at         bigint not null,
+  deleted_at         bigint,
+  server_updated_at  timestamptz not null default now(),
+  primary key (owner_id, holiday_date)
+);
+
+create index if not exists local_holidays_cursor_idx on public.local_holidays (owner_id, server_updated_at);
+
+drop trigger if exists local_holidays_lww on public.local_holidays;
+create trigger local_holidays_lww before insert or update on public.local_holidays
+  for each row execute function public.apply_last_write_wins();
+
+alter table public.local_holidays enable row level security;
+
+drop policy if exists holidays_select on public.local_holidays;
+drop policy if exists holidays_insert on public.local_holidays;
+drop policy if exists holidays_update on public.local_holidays;
+create policy holidays_select on public.local_holidays for select to authenticated
+  using (owner_id = (select auth.uid()));
+create policy holidays_insert on public.local_holidays for insert to authenticated
+  with check (owner_id = (select auth.uid()));
+create policy holidays_update on public.local_holidays for update to authenticated
+  using (owner_id = (select auth.uid())) with check (owner_id = (select auth.uid()));

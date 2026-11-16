@@ -38,6 +38,9 @@ import com.jfaf.calendario.domain.usecase.SignInUseCase
 import com.jfaf.calendario.domain.usecase.SignOutUseCase
 import com.jfaf.calendario.domain.usecase.SignUpUseCase
 import com.jfaf.calendario.domain.usecase.ClearDaysUseCase
+import com.jfaf.calendario.domain.usecase.ToggleLocalHolidaysUseCase
+import com.jfaf.calendario.data.repository.RoomLocalHolidayRepository
+import com.jfaf.calendario.domain.repository.LocalHolidayRepository
 import com.jfaf.calendario.domain.usecase.CopyDaysUseCase
 import com.jfaf.calendario.domain.usecase.PasteDaysUseCase
 import com.jfaf.calendario.domain.usecase.RepeatDaysUseCase
@@ -63,6 +66,8 @@ val dataModule = module {
     single { get<CalendarDatabase>().shiftAssignmentDao() }
     single<ShiftRepository> { RoomShiftRepository(get()) }
     single<ShiftAssignmentRepository> { RoomShiftAssignmentRepository(get()) }
+    single { get<CalendarDatabase>().localHolidayDao() }
+    single<LocalHolidayRepository> { RoomLocalHolidayRepository(get()) }
     single<TodayProvider> { SystemTodayProvider() }
     single<IdGenerator> { UuidIdGenerator() }
     single<SupabaseClient> {
@@ -95,7 +100,7 @@ val dataModule = module {
 val domainModule = module {
     factory { ObserveShiftsUseCase(get()) }
     factory { ObserveStatsUseCase(get(), get()) }
-    factory { ObserveMonthUseCase(get(), get()) }
+    factory { ObserveMonthUseCase(get(), get(), get()) }
     factory { PaintDayUseCase(get()) }
     factory { SignInUseCase(get()) }
     factory { SignUpUseCase(get()) }
@@ -110,6 +115,7 @@ val domainModule = module {
     factory { CopyDaysUseCase(get()) }
     factory { PasteDaysUseCase(get()) }
     factory { ClearDaysUseCase(get()) }
+    factory { ToggleLocalHolidaysUseCase(get()) }
     factory { AssignShiftToDaysUseCase(get()) }
     factory { RepeatDaysUseCase(get()) }
     factory { SaveShiftUseCase(get(), get()) }

@@ -6,6 +6,7 @@ import com.jfaf.calendario.data.local.buildCalendarDatabase
 import com.jfaf.calendario.data.prefs.createPreferencesDataStore
 import com.jfaf.calendario.data.remote.RemoteAssignment
 import com.jfaf.calendario.data.remote.RemoteDataSource
+import com.jfaf.calendario.data.remote.RemoteLocalHoliday
 import com.jfaf.calendario.data.remote.RemoteShift
 import com.jfaf.calendario.data.repository.RoomShiftAssignmentRepository
 import com.jfaf.calendario.data.repository.RoomShiftRepository
@@ -54,6 +55,21 @@ private class FakeRemote : RemoteDataSource {
             val key = r.ownerId to r.id
             if (assignments[key].let { it == null || r.updatedAt >= it.updatedAt }) assignments[key] = r.copy(serverUpdatedAt = stamp())
         }
+    }
+
+    val holidays = mutableMapOf<Pair<String, String>, RemoteLocalHoliday>()
+
+    override suspend fun upsertHolidays(rows: List<RemoteLocalHoliday>) {
+        check()
+        rows.forEach { r ->
+            val key = r.ownerId to r.date
+            if (holidays[key].let { it == null || r.updatedAt >= it.updatedAt }) holidays[key] = r.copy(serverUpdatedAt = stamp())
+        }
+    }
+
+    override suspend fun pullHolidays(since: String?): List<RemoteLocalHoliday> {
+        check()
+        return holidays.values.filter { it.ownerId == user && (since == null || it.serverUpdatedAt!! >= since) }.sortedBy { it.serverUpdatedAt }
     }
 
     var user = "u1"
