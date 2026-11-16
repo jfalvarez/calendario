@@ -3,11 +3,12 @@ package com.jfaf.calendario
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.room.Room
-import com.jfaf.calendario.data.prefs.USER_PREFERENCES_FILE
-import com.jfaf.calendario.data.prefs.createPreferencesDataStore
 import com.jfaf.calendario.data.local.CALENDAR_DATABASE_NAME
 import com.jfaf.calendario.data.local.CalendarDatabase
 import com.jfaf.calendario.data.local.buildCalendarDatabase
+import com.jfaf.calendario.data.prefs.USER_PREFERENCES_FILE
+import com.jfaf.calendario.data.prefs.createPreferencesDataStore
+import com.jfaf.calendario.data.remote.SupabaseConfig
 import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
 
@@ -19,4 +20,6 @@ val androidModule = module {
         val file = androidContext().getDatabasePath(CALENDAR_DATABASE_NAME).also { it.parentFile?.mkdirs() }
         buildCalendarDatabase(Room.databaseBuilder<CalendarDatabase>(androidContext(), file.absolutePath))
     }
+    // La URL y la clave pública salen de local.properties en la compilación (ver app/build.gradle.kts).
+    single { SupabaseConfig(BuildConfig.SUPABASE_URL, BuildConfig.SUPABASE_ANON_KEY) }
 }

@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.android.kotlin.multiplatform.library)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.compose.multiplatform) // Compose Resources
+    alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
     alias(libs.plugins.room)
 }
@@ -39,12 +40,21 @@ kotlin {
             api(libs.compose.mp.material3)
             api(libs.compose.mp.icons.extended)
             api(libs.androidx.datastore.preferences.core)
+            api(libs.supabase.auth)
+            api(libs.supabase.postgrest)
+            implementation(libs.kotlinx.serialization.json)
             api(libs.androidx.room.runtime)
             api(libs.androidx.sqlite.bundled)
             api(libs.koin.core)
             api(libs.koin.compose.viewmodel)
             api(libs.jetbrains.lifecycle.viewmodel)
             api(libs.jetbrains.navigation.compose)
+        }
+        androidMain.dependencies {
+            implementation(libs.ktor.client.okhttp)
+        }
+        named("desktopMain").dependencies {
+            implementation(libs.ktor.client.okhttp)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

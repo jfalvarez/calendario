@@ -1,3 +1,4 @@
+import java.util.Properties
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
@@ -42,3 +43,20 @@ compose.desktop {
         }
     }
 }
+
+// Escritorio: lee la configuración de Supabase de local.properties y la empaqueta como recurso.
+val generateSupabaseConfig by tasks.registering {
+    val outDir = layout.buildDirectory.dir("generated/supabase")
+    val propsFile = rootProject.file("local.properties")
+    inputs.files(propsFile).optional()
+    outputs.dir(outDir)
+    doLast {
+        val props = Properties().apply { if (propsFile.exists()) propsFile.inputStream().use { load(it) } }
+        val file = File(outDir.get().asFile, "supabase.properties").apply { parentFile.mkdirs() }
+        file.writeText(
+            "supabase.url=${props.getProperty("supabase.url", "")}\n" +
+                "supabase.anonKey=${props.getProperty("supabase.anonKey", "")}\n"
+        )
+    }
+}
+tasks.processResources { from(generateSupabaseConfig) }

@@ -2,6 +2,10 @@ package com.jfaf.calendario.presentation.settings
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.runtime.remember
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -35,14 +39,31 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
-fun SettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel = koinViewModel()) {
+fun SettingsScreen(
+    onBack: () -> Unit,
+    viewModel: SettingsViewModel = koinViewModel(),
+    accountViewModel: AccountViewModel = koinViewModel(),
+) {
+    val account by accountViewModel.uiState.collectAsState()
+    val accountActions = remember(accountViewModel) {
+        AccountActions(
+            accountViewModel::onEmailChange, accountViewModel::onPasswordChange, accountViewModel::onSignIn,
+            accountViewModel::onSignUp, accountViewModel::onSignOut, accountViewModel::onSyncNow,
+        )
+    }
     val mode by viewModel.themeMode.collectAsState()
-    SettingsContent(mode ?: ThemeMode.System, onBack, viewModel::onThemeModeSelected)
+    SettingsContent(mode ?: ThemeMode.System, onBack, viewModel::onThemeModeSelected, account, accountActions)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsContent(themeMode: ThemeMode, onBack: () -> Unit, onThemeModeSelected: (ThemeMode) -> Unit) {
+fun SettingsContent(
+    themeMode: ThemeMode,
+    onBack: () -> Unit,
+    onThemeModeSelected: (ThemeMode) -> Unit,
+    account: AccountUiState,
+    accountActions: AccountActions,
+) {
     Scaffold(
         topBar = {
             TopAppBar(
@@ -55,7 +76,12 @@ fun SettingsContent(themeMode: ThemeMode, onBack: () -> Unit, onThemeModeSelecte
             )
         },
     ) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding).padding(16.dp)) {
+        Column(
+            Modifier.fillMaxSize().padding(padding).padding(16.dp).verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            AccountSection(account, accountActions)
+
             Text(stringResource(Res.string.theme), style = MaterialTheme.typography.titleMedium)
             ThemeOption(Res.string.theme_system, ThemeMode.System, themeMode, onThemeModeSelected)
             ThemeOption(Res.string.theme_light, ThemeMode.Light, themeMode, onThemeModeSelected)

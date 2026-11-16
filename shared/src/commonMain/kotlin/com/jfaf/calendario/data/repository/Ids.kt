@@ -12,3 +12,6 @@ internal fun newId(): String = Uuid.random().toString()
 /** Instante actual en ms UTC, para `updatedAt` y `deletedAt`. */
 @OptIn(ExperimentalTime::class)
 internal fun nowMillis(): Long = Clock.System.now().toEpochMilliseconds()
+
+/** Id determinista de una asignación: `fecha#posición` (ver `Migration3To4`). */
+internal fun assignmentId(date: String, slot: Int): String = "$date#$slot"

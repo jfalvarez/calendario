@@ -92,4 +92,28 @@
     <string name="stats_by_shift">Por turno</string>
     <string name="stats_count">%1$d turnos</string>
     <string name="stats_empty">No hay turnos en este periodo.</string>
+
+    <string name="account_title">Cuenta y sincronización</string>
+    <string name="account_hint">La cuenta es opcional: sirve para ver el mismo calendario en el móvil y en el PC. Sin cuenta, los datos quedan sólo en este dispositivo.</string>
+    <string name="account_loading">Comprobando sesión…</string>
+    <string name="email">Correo electrónico</string>
+    <string name="password">Contraseña (mínimo 6 caracteres)</string>
+    <string name="sign_in">Iniciar sesión</string>
+    <string name="sign_up">Crear cuenta</string>
+    <string name="sign_out">Cerrar sesión</string>
+    <string name="signed_in_as">Sesión iniciada como %1$s</string>
+    <string name="sync_now">Sincronizar ahora</string>
+    <string name="sync_syncing">Sincronizando…</string>
+    <string name="sync_pending">Pendiente de sincronizar</string>
+    <string name="sync_idle">Sincronizado el %1$s</string>
+    <string name="sync_offline">Sin conexión: se reintentará solo.</string>
+    <string name="sync_failed">No se pudo sincronizar: se reintentará.</string>
+    <string name="auth_error_invalid_email">El correo no es válido.</string>
+    <string name="auth_error_weak_password">La contraseña debe tener al menos 6 caracteres.</string>
+    <string name="auth_error_invalid_credentials">Correo o contraseña incorrectos.</string>
+    <string name="auth_error_email_used">Ese correo ya tiene cuenta: inicia sesión.</string>
+    <string name="auth_error_network">Sin conexión: inténtalo de nuevo.</string>
+    <string name="auth_error_unknown">No se pudo completar la operación.</string>
+
+    <string name="auth_error_confirm_email">Cuenta creada. Confirma tu correo con el enlace que te hemos enviado y después inicia sesión.</string>
 </resources>

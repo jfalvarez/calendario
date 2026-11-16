@@ -44,7 +44,7 @@ class RoomShiftAssignmentRepository(private val dao: ShiftAssignmentDao) : Shift
         date: String, slot: Int, wanted: String?, current: ShiftAssignmentEntity?, now: Long,
     ): ShiftAssignmentEntity? = when {
         wanted != null && (current == null || current.deletedAt != null || current.shiftId != wanted) ->
-            ShiftAssignmentEntity(current?.id ?: newId(), date, slot, wanted, now, null, true)
+            ShiftAssignmentEntity(current?.id ?: assignmentId(date, slot), date, slot, wanted, now, null, true)
         wanted == null && current != null && current.deletedAt == null ->
             current.copy(updatedAt = now, deletedAt = now, dirty = true)
         else -> null
