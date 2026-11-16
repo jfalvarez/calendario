@@ -72,6 +72,8 @@ import com.jfaf.calendario.domain.model.AppStyle
 import com.jfaf.calendario.presentation.theme.LocalAppStyle
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -148,6 +150,7 @@ fun CalendarScreen(onOpenShifts: () -> Unit, onOpenSettings: () -> Unit, onOpenS
 fun CalendarContent(state: CalendarUiState, actions: CalendarActions) {
     val monthNames = stringArrayResource(Res.array.month_names)
     val weekdays = stringArrayResource(Res.array.weekday_short)
+    val haptics = LocalHapticFeedback.current
     Column(Modifier.fillMaxSize().safeDrawingPadding().padding(8.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             FilledTonalIconButton(onClick = actions.onPreviousMonth) {
@@ -193,7 +196,13 @@ fun CalendarContent(state: CalendarUiState, actions: CalendarActions) {
                             day = day,
                             isToday = day.date == state.today,
                             isSelected = day.date in state.selection,
-                            onClick = { actions.onDayClick(day.date) },
+                            onClick = {
+                                // Pintar un turno en el día: respuesta háptica (en escritorio no hace nada).
+                                if (state.mode == CalendarMode.Paint && state.paintShiftId != null) {
+                                    haptics.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                }
+                                actions.onDayClick(day.date)
+                            },
                             onLongClick = { actions.onDayLongPress(day.date) },
                         )
                     }
@@ -215,7 +224,10 @@ fun CalendarContent(state: CalendarUiState, actions: CalendarActions) {
     }
 
     when (state.dialog) {
-        CalendarDialog.Assign -> AssignDialog(state.shifts, actions.onDismissDialog, actions.onAssign)
+        CalendarDialog.Assign -> AssignDialog(state.shifts, actions.onDismissDialog) { shiftId, asSecond ->
+            haptics.performHapticFeedback(HapticFeedbackType.ContextClick)
+            actions.onAssign(shiftId, asSecond)
+        }
         CalendarDialog.Repeat -> RepeatDialog(actions.onDismissDialog, actions.onRepeat)
         null -> Unit
     }
@@ -265,6 +277,7 @@ private fun PaintBar(state: CalendarUiState, actions: CalendarActions) {
 @Composable
 private fun EditBar(state: CalendarUiState, actions: CalendarActions) {
     val hasSelection = state.selection.isNotEmpty()
+    val haptics = LocalHapticFeedback.current
     Text(
         if (hasSelection) stringResource(Res.string.selected_count, state.selection.size)
         else stringResource(Res.string.edit_mode_hint),
@@ -275,7 +288,10 @@ private fun EditBar(state: CalendarUiState, actions: CalendarActions) {
         ActionButton(Icons.Filled.Brush, Res.string.assign_shift, hasSelection, actions.onAssignClick)
         ActionButton(Icons.Filled.ContentCopy, Res.string.copy, hasSelection, actions.onCopy)
         ActionButton(Icons.Filled.ContentCut, Res.string.cut, hasSelection, actions.onCut)
-        ActionButton(Icons.Filled.ContentPaste, Res.string.paste, hasSelection && state.hasClipboard, actions.onPaste)
+        ActionButton(Icons.Filled.ContentPaste, Res.string.paste, hasSelection && state.hasClipboard) {
+            haptics.performHapticFeedback(HapticFeedbackType.ContextClick)
+            actions.onPaste()
+        }
         ActionButton(Icons.Filled.Repeat, Res.string.repeat, hasSelection, actions.onRepeatClick)
         ActionButton(Icons.Filled.Delete, Res.string.delete, hasSelection, actions.onDelete)
         ActionButton(Icons.Filled.Close, Res.string.clear_selection, hasSelection, actions.onClearSelection)
