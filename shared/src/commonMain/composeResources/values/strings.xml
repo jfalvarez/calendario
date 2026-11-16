@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Calendario</string>
+    <string name="month_empty_hint">Aquí irá el calendario de turnos</string>
+</resources>
