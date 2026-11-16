@@ -1,7 +1,7 @@
 package com.jfaf.calendario.domain.usecase
 
-import com.jfaf.calendario.data.repository.InMemoryShiftAssignmentRepository
-import com.jfaf.calendario.data.repository.InMemoryShiftRepository
+import com.jfaf.calendario.fakes.InMemoryShiftAssignmentRepository
+import com.jfaf.calendario.fakes.InMemoryShiftRepository
 import com.jfaf.calendario.domain.model.CalendarMonth
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -19,7 +19,7 @@ class MonthUseCasesTest {
 
     @Test
     fun paintedShiftAppearsOnThatDay() = runTest {
-        paint(day, 1)
+        paint(day, "default-morning")
         val cell = observeMonth(CalendarMonth(2025, 11)).first().flatten().single { it.date == day }
         assertEquals(listOf("M"), cell.shifts.map { it.abbreviation })
         assertTrue(cell.inCurrentMonth)
@@ -27,16 +27,16 @@ class MonthUseCasesTest {
 
     @Test
     fun paintingSameShiftTwiceClearsTheDay() = runTest {
-        paint(day, 1)
-        paint(day, 1)
+        paint(day, "default-morning")
+        paint(day, "default-morning")
         assertEquals(emptyList(), assignments.getShiftIds(day))
     }
 
     @Test
     fun paintingOtherShiftReplaces() = runTest {
-        paint(day, 1)
-        paint(day, 2)
-        assertEquals(listOf(2L), assignments.getShiftIds(day))
+        paint(day, "default-morning")
+        paint(day, "default-afternoon")
+        assertEquals(listOf("default-afternoon"), assignments.getShiftIds(day))
     }
 
     @Test

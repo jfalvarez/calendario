@@ -1,6 +1,6 @@
 package com.jfaf.calendario.domain.usecase
 
-import com.jfaf.calendario.data.repository.InMemoryShiftRepository
+import com.jfaf.calendario.fakes.InMemoryShiftRepository
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test

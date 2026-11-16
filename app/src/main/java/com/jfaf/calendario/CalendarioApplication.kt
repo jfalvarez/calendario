@@ -10,7 +10,7 @@ class CalendarioApplication : Application() {
         super.onCreate()
         startKoin {
             androidContext(this@CalendarioApplication)
-            modules(appModules)
+            modules(appModules + androidModule)
         }
     }
 }

@@ -28,7 +28,7 @@ class CalendarViewModel(
 ) : ViewModel() {
     private val today = todayProvider.today()
     private val month = MutableStateFlow(CalendarMonth.of(today))
-    private val paintShiftId = MutableStateFlow<Long?>(null)
+    private val paintShiftId = MutableStateFlow<String?>(null)
 
     val uiState: StateFlow<CalendarUiState> = combine(
         month,
@@ -48,7 +48,7 @@ class CalendarViewModel(
     fun onToday() { month.value = CalendarMonth.of(today) }
 
     /** Pulsar el turno activo lo desactiva. */
-    fun onShiftSelected(id: Long) = paintShiftId.update { if (it == id) null else id }
+    fun onShiftSelected(id: String) = paintShiftId.update { if (it == id) null else id }
 
     fun onDayClick(date: LocalDate) {
         val id = paintShiftId.value ?: return

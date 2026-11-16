@@ -18,6 +18,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.List
+import com.jfaf.calendario.resources.manage_shifts
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -50,7 +52,7 @@ import org.koin.compose.viewmodel.koinViewModel
 
 /** Pantalla con estado (conecta el ViewModel) y contenido sin estado (testeable/previsualizable). */
 @Composable
-fun CalendarScreen(viewModel: CalendarViewModel = koinViewModel()) {
+fun CalendarScreen(onOpenShifts: () -> Unit, viewModel: CalendarViewModel = koinViewModel()) {
     val state by viewModel.uiState.collectAsState()
     CalendarContent(
         state = state,
@@ -59,6 +61,7 @@ fun CalendarScreen(viewModel: CalendarViewModel = koinViewModel()) {
         onToday = viewModel::onToday,
         onShiftSelected = viewModel::onShiftSelected,
         onDayClick = viewModel::onDayClick,
+        onOpenShifts = onOpenShifts,
     )
 }
 
@@ -68,8 +71,9 @@ fun CalendarContent(
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
     onToday: () -> Unit,
-    onShiftSelected: (Long) -> Unit,
+    onShiftSelected: (String) -> Unit,
     onDayClick: (kotlinx.datetime.LocalDate) -> Unit,
+    onOpenShifts: () -> Unit,
 ) {
     val monthNames = stringArrayResource(Res.array.month_names)
     val weekdays = stringArrayResource(Res.array.weekday_short)
@@ -88,6 +92,9 @@ fun CalendarContent(
                 Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, stringResource(Res.string.next_month))
             }
             TextButton(onClick = onToday) { Text(stringResource(Res.string.today)) }
+            IconButton(onClick = onOpenShifts) {
+                Icon(Icons.AutoMirrored.Filled.List, stringResource(Res.string.manage_shifts))
+            }
         }
         Row(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
             weekdays.forEach {

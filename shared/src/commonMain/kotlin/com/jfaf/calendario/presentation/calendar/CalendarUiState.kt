@@ -12,5 +12,5 @@ data class CalendarUiState(
     val weeks: List<List<CalendarDay>> = emptyList(),
     val shifts: List<Shift> = emptyList(),
     /** Turno activo del modo Pintar; null = pintar desactivado. */
-    val paintShiftId: Long? = null,
+    val paintShiftId: String? = null,
 )

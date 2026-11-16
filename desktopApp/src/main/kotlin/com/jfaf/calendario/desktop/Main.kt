@@ -7,7 +7,7 @@ import com.jfaf.calendario.presentation.App
 import org.koin.core.context.startKoin
 
 fun main() {
-    startKoin { modules(appModules) }
+    startKoin { modules(appModules + desktopModule()) }
     application {
         Window(onCloseRequest = ::exitApplication, title = "Calendario") {
             App()
