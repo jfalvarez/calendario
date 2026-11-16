@@ -1,4 +1,30 @@
 <resources>
     <string name="app_name">Calendario</string>
-    <string name="month_empty_hint">Aquí irá el calendario de turnos</string>
+    <string name="today">Hoy</string>
+    <string name="previous_month">Mes anterior</string>
+    <string name="next_month">Mes siguiente</string>
+    <string name="paint_mode_hint">Elige un turno y pulsa los días para pintarlos</string>
+    <string-array name="month_names">
+        <item>Enero</item>
+        <item>Febrero</item>
+        <item>Marzo</item>
+        <item>Abril</item>
+        <item>Mayo</item>
+        <item>Junio</item>
+        <item>Julio</item>
+        <item>Agosto</item>
+        <item>Septiembre</item>
+        <item>Octubre</item>
+        <item>Noviembre</item>
+        <item>Diciembre</item>
+    </string-array>
+    <string-array name="weekday_short">
+        <item>L</item>
+        <item>M</item>
+        <item>X</item>
+        <item>J</item>
+        <item>V</item>
+        <item>S</item>
+        <item>D</item>
+    </string-array>
 </resources>
