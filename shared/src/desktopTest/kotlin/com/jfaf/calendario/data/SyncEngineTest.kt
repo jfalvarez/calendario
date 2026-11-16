@@ -183,3 +183,56 @@ class SyncEngineTest {
         assertTrue(remote.assignments.keys.none { it.first == "u2" })
     }
 }
+
+class ForegroundSyncTest {
+    @Test
+    fun staleness() {
+        assertTrue(com.jfaf.calendario.data.sync.isStale(null, 1_000, 30_000))
+        assertTrue(!com.jfaf.calendario.data.sync.isStale(1_000, 20_000, 30_000))
+        assertTrue(com.jfaf.calendario.data.sync.isStale(1_000, 31_000, 30_000))
+        assertTrue(com.jfaf.calendario.data.sync.isStale(50_000, 40_000, 30_000)) // el reloj retrocedió
+    }
+
+    @Test
+    fun foregroundRequestPullsOnlyWhenStale() = kotlinx.coroutines.runBlocking(Dispatchers.Default) {
+        val remote = FakeRemote()
+        val phone = Device(remote)
+        val pc = Device(remote)
+        var now = 1_000_000L
+        val auth = object : AuthRepository {
+            override val authState = kotlinx.coroutines.flow.MutableStateFlow<AuthState>(AuthState.SignedIn("u1", "a@b.com"))
+            override suspend fun signIn(email: String, password: String) = null
+            override suspend fun signUp(email: String, password: String) = null
+            override suspend fun signOut() {}
+        }
+        val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
+        val prefsFile = File.createTempFile("foreground", ".preferences_pb").also { it.delete() }
+        val engine = SyncEngine(
+            phone.db, remote, auth, createPreferencesDataStore(prefsFile.absolutePath, scope), scope,
+            periodMs = 3_600_000, debounceMs = 3_600_000, clock = { now }, // sólo cuenta el disparador de primer plano
+        )
+        suspend fun waitUntil(what: String, check: suspend () -> Boolean) {
+            kotlinx.coroutines.withTimeout(10_000) { while (!check()) kotlinx.coroutines.delay(50) }
+        }
+        try {
+            val day = LocalDate(2026, 11, 20)
+            engine.start()
+            waitUntil("primera sincronización") { engine.state.value is SyncState.Idle && (engine.state.value as SyncState.Idle).lastSyncedAt != null }
+
+            // El PC pinta un día y lo sube; el móvil no se entera aún.
+            pc.assignments.setShiftIds(day, listOf("default-morning"))
+            pc.engine.syncNow("u1")
+
+            now += 5_000 // vuelve a primer plano a los 5 s: aún no toca
+            engine.requestSyncIfStale()
+            kotlinx.coroutines.delay(400)
+            assertEquals(emptyList(), phone.assignments.getShiftIds(day))
+
+            now += 60_000 // vuelve a primer plano pasado un minuto: sincroniza
+            engine.requestSyncIfStale()
+            waitUntil("novedades del PC") { phone.assignments.getShiftIds(day) == listOf("default-morning") }
+        } finally {
+            scope.cancel(); phone.close(); pc.close(); prefsFile.delete()
+        }
+    }
+}

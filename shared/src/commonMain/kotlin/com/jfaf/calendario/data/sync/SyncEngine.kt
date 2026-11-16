@@ -47,6 +47,7 @@ class SyncEngine(
     private val scope: CoroutineScope,
     private val periodMs: Long = DEFAULT_PERIOD_MS,
     private val debounceMs: Long = DEBOUNCE_MS,
+    private val clock: () -> Long = ::nowMillis,
 ) : SyncRepository {
     private val shiftDao = db.shiftDao()
     private val assignmentDao = db.shiftAssignmentDao()
@@ -54,12 +55,17 @@ class SyncEngine(
     private val mutex = Mutex()
     private val requests = Channel<Unit>(Channel.CONFLATED)
     private val _state = MutableStateFlow<SyncState>(SyncState.NotSignedIn)
+    @kotlin.concurrent.Volatile
     private var lastSyncedAt: Long? = null
 
     override val state: StateFlow<SyncState> = _state.asStateFlow()
 
     override fun requestSync() {
         requests.trySend(Unit)
+    }
+
+    override fun requestSyncIfStale() {
+        if (isStale(lastSyncedAt, clock(), SyncRepository.STALE_AFTER_MS)) requestSync()
     }
 
     /** Arranca el motor: se activa al iniciar sesión y se detiene al cerrarla. */
@@ -102,7 +108,7 @@ class SyncEngine(
             adoptAccount(userId)
             push(userId)
             pull(userId)
-            lastSyncedAt = nowMillis()
+            lastSyncedAt = clock()
             _state.value = SyncState.Idle(lastSyncedAt)
         } catch (e: CancellationException) {
             throw e
@@ -164,3 +170,7 @@ class SyncEngine(
         private val LAST_USER_KEY = stringPreferencesKey("sync_last_user_id")
     }
 }
+
+/** ¿Hay que volver a sincronizar? Sí si nunca se sincronizó o ya pasó `maxAgeMs` (o el reloj retrocedió). */
+internal fun isStale(lastSyncedAt: Long?, now: Long, maxAgeMs: Long): Boolean =
+    lastSyncedAt == null || now < lastSyncedAt || now - lastSyncedAt >= maxAgeMs

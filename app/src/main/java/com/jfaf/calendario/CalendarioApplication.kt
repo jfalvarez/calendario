@@ -1,6 +1,9 @@
 package com.jfaf.calendario
 
 import android.app.Application
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.ProcessLifecycleOwner
 import com.jfaf.calendario.data.sync.SyncEngine
 import com.jfaf.calendario.di.appModules
 import org.koin.android.ext.koin.androidContext
@@ -13,7 +16,12 @@ class CalendarioApplication : Application() {
             androidContext(this@CalendarioApplication)
             modules(appModules + androidModule)
         }.koin
+        val sync = koin.get<SyncEngine>()
         // Se activa al iniciar sesión y se detiene al cerrarla.
-        koin.get<SyncEngine>().start()
+        sync.start()
+        // Cada vez que la app pasa a primer plano (no a cada pantalla): sincroniza si hace tiempo que no se hacía.
+        ProcessLifecycleOwner.get().lifecycle.addObserver(LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_START) sync.requestSyncIfStale()
+        })
     }
 }
