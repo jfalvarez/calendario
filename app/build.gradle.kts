@@ -30,6 +30,14 @@ android {
             isMinifyEnabled = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
+        // Igual que release (R8 y reglas), firmada con la clave de depuración y con otro id: se instala junto a la
+        // app normal sin tocar sus datos y sirve para comprobar que la ofuscación no rompe nada.
+        create("releaseCheck") {
+            initWith(getByName("release"))
+            applicationIdSuffix = ".releasecheck"
+            signingConfig = signingConfigs.getByName("debug")
+            matchingFallbacks += "release"
+        }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
