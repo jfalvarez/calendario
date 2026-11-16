@@ -31,6 +31,10 @@ interface ShiftAssignmentDao {
     @Query("SELECT * FROM shift_assignments WHERE date BETWEEN :from AND :to AND deletedAt IS NULL ORDER BY date, slot")
     fun observeAlive(from: String, to: String): Flow<List<ShiftAssignmentEntity>>
 
+    /** Filas del rango, incluidas las borradas lógicamente (para reutilizar su `id` y su posición). */
+    @Query("SELECT * FROM shift_assignments WHERE date BETWEEN :from AND :to")
+    suspend fun getInRange(from: String, to: String): List<ShiftAssignmentEntity>
+
     /** Incluye las filas borradas lógicamente, para reutilizar su `id` y su posición. */
     @Query("SELECT * FROM shift_assignments WHERE date = :date")
     suspend fun getForDate(date: String): List<ShiftAssignmentEntity>

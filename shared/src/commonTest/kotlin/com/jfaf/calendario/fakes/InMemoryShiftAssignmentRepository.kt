@@ -16,7 +16,16 @@ class InMemoryShiftAssignmentRepository : ShiftAssignmentRepository {
 
     override suspend fun getShiftIds(date: LocalDate): List<String> = data.value[date].orEmpty()
 
-    override suspend fun setShiftIds(date: LocalDate, shiftIds: List<String>) {
-        data.update { if (shiftIds.isEmpty()) it - date else it + (date to shiftIds.take(2)) }
+    override suspend fun setShiftIds(date: LocalDate, shiftIds: List<String>) = setAssignments(mapOf(date to shiftIds))
+
+    override suspend fun getAssignments(from: LocalDate, to: LocalDate): Map<LocalDate, List<String>> =
+        data.value.filterKeys { it in from..to }
+
+    override suspend fun setAssignments(changes: Map<LocalDate, List<String>>) {
+        data.update { current ->
+            changes.entries.fold(current) { acc, (date, ids) ->
+                if (ids.isEmpty()) acc - date else acc + (date to ids.take(2))
+            }
+        }
     }
 }

@@ -6,6 +6,11 @@ import com.jfaf.calendario.data.repository.RoomShiftRepository
 import com.jfaf.calendario.data.repository.SystemTodayProvider
 import com.jfaf.calendario.data.repository.UuidIdGenerator
 import com.jfaf.calendario.domain.repository.IdGenerator
+import com.jfaf.calendario.domain.usecase.AssignShiftToDaysUseCase
+import com.jfaf.calendario.domain.usecase.ClearDaysUseCase
+import com.jfaf.calendario.domain.usecase.CopyDaysUseCase
+import com.jfaf.calendario.domain.usecase.PasteDaysUseCase
+import com.jfaf.calendario.domain.usecase.RepeatDaysUseCase
 import com.jfaf.calendario.domain.usecase.DeleteShiftUseCase
 import com.jfaf.calendario.domain.usecase.ReorderShiftsUseCase
 import com.jfaf.calendario.domain.usecase.SaveShiftUseCase
@@ -34,6 +39,11 @@ val domainModule = module {
     factory { ObserveShiftsUseCase(get()) }
     factory { ObserveMonthUseCase(get(), get()) }
     factory { PaintDayUseCase(get()) }
+    factory { CopyDaysUseCase(get()) }
+    factory { PasteDaysUseCase(get()) }
+    factory { ClearDaysUseCase(get()) }
+    factory { AssignShiftToDaysUseCase(get()) }
+    factory { RepeatDaysUseCase(get()) }
     factory { SaveShiftUseCase(get(), get()) }
     factory { DeleteShiftUseCase(get()) }
     factory { ReorderShiftsUseCase(get()) }

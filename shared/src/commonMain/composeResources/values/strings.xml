@@ -56,4 +56,20 @@
     <string name="error_break_invalid">El descanso debe ser menor que la jornada.</string>
     <string name="error_time_format">Hora no válida: usa HH:mm (por ejemplo 06:30).</string>
     <string name="error_break_format">El descanso debe ser un número de minutos.</string>
+
+    <string name="mode_paint">Pintar</string>
+    <string name="mode_edit">Editar</string>
+    <string name="edit_mode_hint">Toca días para seleccionarlos; mantén pulsado para seleccionar un rango</string>
+    <string name="selected_count">%1$d días seleccionados</string>
+    <string name="assign_shift">Asignar turno</string>
+    <string name="as_second_shift">Añadir como segundo turno</string>
+    <string name="copy">Copiar</string>
+    <string name="cut">Cortar</string>
+    <string name="paste">Pegar</string>
+    <string name="repeat">Repetir</string>
+    <string name="clear_selection">Quitar selección</string>
+    <string name="repeat_title">Repetir selección</string>
+    <string name="repeat_hint">El bloque seleccionado (del primer al último día) se repite a continuación.</string>
+    <string name="repeat_times">Repeticiones</string>
+    <string name="apply">Aplicar</string>
 </resources>

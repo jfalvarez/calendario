@@ -76,4 +76,16 @@ class RoomRepositoriesTest {
         shifts.reorder(listOf("default-night", "default-morning"))
         assertEquals(listOf("default-night", "default-morning"), shifts.observeShifts().first().map { it.id })
     }
+
+    @Test
+    fun bulkSetAndGetAssignments() = runTest {
+        val d2 = LocalDate(2025, 11, 13)
+        assignments.setAssignments(mapOf(day to listOf("default-morning"), d2 to listOf("default-night", "default-afternoon")))
+        assertEquals(
+            mapOf(day to listOf("default-morning"), d2 to listOf("default-night", "default-afternoon")),
+            assignments.getAssignments(day, d2),
+        )
+        assignments.setAssignments(mapOf(day to emptyList(), d2 to listOf("default-night")))
+        assertEquals(mapOf(d2 to listOf("default-night")), assignments.getAssignments(day, d2))
+    }
 }

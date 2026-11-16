@@ -15,27 +15,39 @@ class RoomShiftAssignmentRepository(private val dao: ShiftAssignmentDao) : Shift
         }
 
     override suspend fun getShiftIds(date: LocalDate): List<String> =
-        dao.getForDate(date.toString())
-            .filter { it.deletedAt == null }
-            .sortedBy { it.slot }
-            .map { it.shiftId }
+        getAssignments(date, date)[date].orEmpty()
 
-    override suspend fun setShiftIds(date: LocalDate, shiftIds: List<String>) {
-        val key = date.toString()
-        val existingBySlot = dao.getForDate(key).associateBy { it.slot }
+    override suspend fun setShiftIds(date: LocalDate, shiftIds: List<String>) =
+        setAssignments(mapOf(date to shiftIds))
+
+    override suspend fun getAssignments(from: LocalDate, to: LocalDate): Map<LocalDate, List<String>> =
+        dao.getInRange(from.toString(), to.toString())
+            .filter { it.deletedAt == null }
+            .sortedWith(compareBy({ it.date }, { it.slot }))
+            .groupBy({ LocalDate.parse(it.date) }, { it.shiftId })
+
+    override suspend fun setAssignments(changes: Map<LocalDate, List<String>>) {
+        if (changes.isEmpty()) return
+        val existing = dao.getInRange(changes.keys.min().toString(), changes.keys.max().toString())
+            .groupBy { it.date }
         val now = nowMillis()
-        val changes = (0 until MAX_SHIFTS_PER_DAY).mapNotNull { slot ->
-            val wanted = shiftIds.getOrNull(slot)
-            val current = existingBySlot[slot]
-            when {
-                wanted != null && (current == null || current.deletedAt != null || current.shiftId != wanted) ->
-                    ShiftAssignmentEntity(current?.id ?: newId(), key, slot, wanted, now, null, true)
-                wanted == null && current != null && current.deletedAt == null ->
-                    current.copy(updatedAt = now, deletedAt = now, dirty = true)
-                else -> null
-            }
+        val rows = changes.flatMap { (date, ids) ->
+            val key = date.toString()
+            val bySlot = existing[key].orEmpty().associateBy { it.slot }
+            (0 until MAX_SHIFTS_PER_DAY).mapNotNull { slot -> diff(key, slot, ids.getOrNull(slot), bySlot[slot], now) }
         }
-        if (changes.isNotEmpty()) dao.upsertAll(changes)
+        if (rows.isNotEmpty()) dao.upsertAll(rows)
+    }
+
+    /** Fila a escribir para que la posición `slot` del día quede como `wanted`, o null si ya lo está. */
+    private fun diff(
+        date: String, slot: Int, wanted: String?, current: ShiftAssignmentEntity?, now: Long,
+    ): ShiftAssignmentEntity? = when {
+        wanted != null && (current == null || current.deletedAt != null || current.shiftId != wanted) ->
+            ShiftAssignmentEntity(current?.id ?: newId(), date, slot, wanted, now, null, true)
+        wanted == null && current != null && current.deletedAt == null ->
+            current.copy(updatedAt = now, deletedAt = now, dirty = true)
+        else -> null
     }
 
     private companion object {
