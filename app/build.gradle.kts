@@ -70,6 +70,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.process)
     implementation(libs.koin.android)
     implementation(libs.play.app.update)
+    implementation(libs.androidx.glance.appwidget) // widget de pantalla de inicio (turnos de hoy y mañana)
 }
 
 kotlin {

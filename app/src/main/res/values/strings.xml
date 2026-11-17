@@ -1,3 +1,9 @@
 <resources>
     <string name="app_label">NurseOClock</string>
+    <string name="widget_name">Turnos de hoy y mañana</string>
+    <string name="widget_description">Tu turno de hoy y el de mañana de un vistazo.</string>
+    <string name="widget_today">Hoy</string>
+    <string name="widget_tomorrow">Mañana</string>
+    <string name="widget_no_shift">Sin turno</string>
+    <string name="widget_holiday">Festivo</string>
 </resources>

@@ -59,6 +59,7 @@ import com.jfaf.calendario.domain.repository.ShiftAssignmentRepository
 import com.jfaf.calendario.domain.repository.ShiftRepository
 import com.jfaf.calendario.domain.repository.TodayProvider
 import com.jfaf.calendario.domain.usecase.ObserveMonthUseCase
+import com.jfaf.calendario.domain.usecase.ObserveUpcomingDaysUseCase
 import com.jfaf.calendario.domain.usecase.ObserveShiftsUseCase
 import com.jfaf.calendario.domain.usecase.ObserveStatsUseCase
 import com.jfaf.calendario.presentation.stats.StatsViewModel
@@ -111,6 +112,7 @@ val domainModule = module {
     factory { ObserveShiftsUseCase(get()) }
     factory { ObserveStatsUseCase(get(), get()) }
     factory { ObserveMonthUseCase(get(), get(), get()) }
+    factory { ObserveUpcomingDaysUseCase(get(), get(), get()) }
     factory { PaintDayUseCase(get()) }
     factory { SignInUseCase(get()) }
     factory { SignUpUseCase(get()) }
