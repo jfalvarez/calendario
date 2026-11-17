@@ -20,6 +20,12 @@ class SupabaseRemoteDataSource(private val client: SupabaseClient) : RemoteDataS
 
     override suspend fun pullHolidays(since: String?): List<RemoteLocalHoliday> = pullAll("local_holidays", since, "holiday_date")
 
+    override suspend fun upsertDayNotes(rows: List<RemoteDayNote>) {
+        rows.chunked(BATCH).forEach { client.from("day_notes").upsert(it) { onConflict = "owner_id,id" } }
+    }
+
+    override suspend fun pullDayNotes(since: String?): List<RemoteDayNote> = pullAll("day_notes", since)
+
     override suspend fun pullShifts(since: String?): List<RemoteShift> = pullAll("shifts", since)
 
     override suspend fun pullAssignments(since: String?): List<RemoteAssignment> = pullAll("shift_assignments", since)

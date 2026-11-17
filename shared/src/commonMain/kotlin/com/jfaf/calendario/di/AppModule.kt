@@ -25,6 +25,13 @@ import com.jfaf.calendario.data.repository.RoomShiftRepository
 import com.jfaf.calendario.data.repository.SystemTodayProvider
 import com.jfaf.calendario.data.repository.UuidIdGenerator
 import com.jfaf.calendario.domain.repository.IdGenerator
+import com.jfaf.calendario.domain.repository.DayNoteRepository
+import com.jfaf.calendario.data.repository.RoomDayNoteRepository
+import com.jfaf.calendario.domain.usecase.DeleteDayNoteUseCase
+import com.jfaf.calendario.domain.usecase.ObserveDayNotesUseCase
+import com.jfaf.calendario.domain.usecase.ObserveDebtsUseCase
+import com.jfaf.calendario.domain.usecase.SaveDayNoteUseCase
+import com.jfaf.calendario.domain.usecase.SetNoteSettledUseCase
 import com.jfaf.calendario.domain.repository.SettingsRepository
 import com.jfaf.calendario.domain.repository.ReminderSettingsRepository
 import com.jfaf.calendario.domain.usecase.ObserveReminderSettingsUseCase
@@ -69,6 +76,7 @@ import com.jfaf.calendario.domain.usecase.ObserveUpcomingDaysUseCase
 import com.jfaf.calendario.domain.usecase.ObserveShiftsUseCase
 import com.jfaf.calendario.domain.usecase.ObserveStatsUseCase
 import com.jfaf.calendario.presentation.stats.StatsViewModel
+import com.jfaf.calendario.presentation.debts.DebtsViewModel
 import com.jfaf.calendario.domain.usecase.PaintDayUseCase
 import com.jfaf.calendario.presentation.calendar.CalendarViewModel
 import org.koin.core.module.dsl.viewModel
@@ -83,6 +91,8 @@ val dataModule = module {
     single<ShiftAssignmentRepository> { RoomShiftAssignmentRepository(get()) }
     single { get<CalendarDatabase>().localHolidayDao() }
     single<LocalHolidayRepository> { RoomLocalHolidayRepository(get()) }
+    single { get<CalendarDatabase>().dayNoteDao() }
+    single<DayNoteRepository> { RoomDayNoteRepository(get()) }
     single<TodayProvider> { SystemTodayProvider() }
     single<IdGenerator> { UuidIdGenerator() }
     single<SupabaseClient> {
@@ -123,6 +133,11 @@ val domainModule = module {
     factory { SetReminderEnabledUseCase(get()) }
     factory { SetReminderTimeUseCase(get()) }
     factory { PlanNextReminderUseCase(get(), get(), get()) }
+    factory { ObserveDayNotesUseCase(get()) }
+    factory { ObserveDebtsUseCase(get()) }
+    factory { SaveDayNoteUseCase(get(), get()) }
+    factory { SetNoteSettledUseCase(get()) }
+    factory { DeleteDayNoteUseCase(get()) }
     factory { PaintDayUseCase(get()) }
     factory { SignInUseCase(get()) }
     factory { SignUpUseCase(get()) }
@@ -154,6 +169,7 @@ val presentationModule = module {
     viewModelOf(::SettingsViewModel)
     viewModelOf(::AccountViewModel)
     viewModelOf(::StatsViewModel)
+    viewModelOf(::DebtsViewModel)
     viewModel { UpdateViewModel(get(), get(), get(), get<AppForegroundEvents>().events) }
 }
 

@@ -5,13 +5,17 @@ import com.jfaf.calendario.data.local.CalendarDatabase
 import com.jfaf.calendario.data.local.buildCalendarDatabase
 import com.jfaf.calendario.data.prefs.createPreferencesDataStore
 import com.jfaf.calendario.data.remote.RemoteAssignment
+import com.jfaf.calendario.data.remote.RemoteDayNote
 import com.jfaf.calendario.data.remote.RemoteDataSource
 import com.jfaf.calendario.data.remote.RemoteLocalHoliday
 import com.jfaf.calendario.data.remote.RemoteShift
+import com.jfaf.calendario.data.repository.RoomDayNoteRepository
 import com.jfaf.calendario.data.repository.RoomLocalHolidayRepository
 import com.jfaf.calendario.data.repository.RoomShiftAssignmentRepository
 import com.jfaf.calendario.data.repository.RoomShiftRepository
 import com.jfaf.calendario.data.sync.SyncEngine
+import com.jfaf.calendario.domain.model.DayNote
+import com.jfaf.calendario.domain.model.NoteKind
 import com.jfaf.calendario.domain.model.AuthState
 import com.jfaf.calendario.domain.model.Shift
 import com.jfaf.calendario.domain.model.SyncState
@@ -59,6 +63,20 @@ private class FakeRemote : RemoteDataSource {
     }
 
     val holidays = mutableMapOf<Pair<String, String>, RemoteLocalHoliday>()
+    val dayNotes = mutableMapOf<Pair<String, String>, RemoteDayNote>()
+
+    override suspend fun upsertDayNotes(rows: List<RemoteDayNote>) {
+        check()
+        rows.forEach { r ->
+            val key = r.ownerId to r.id
+            if (dayNotes[key].let { it == null || r.updatedAt >= it.updatedAt }) dayNotes[key] = r.copy(serverUpdatedAt = stamp())
+        }
+    }
+
+    override suspend fun pullDayNotes(since: String?): List<RemoteDayNote> {
+        check()
+        return dayNotes.values.filter { it.ownerId == user && (since == null || it.serverUpdatedAt!! >= since) }.sortedBy { it.serverUpdatedAt }
+    }
 
     override suspend fun upsertHolidays(rows: List<RemoteLocalHoliday>) {
         check()
@@ -94,6 +112,7 @@ private class Device(remote: FakeRemote) {
     val shifts = RoomShiftRepository(db.shiftDao())
     val assignments = RoomShiftAssignmentRepository(db.shiftAssignmentDao())
     val holidays = RoomLocalHolidayRepository(db.localHolidayDao())
+    val notes = RoomDayNoteRepository(db.dayNoteDao())
     val engine = SyncEngine(
         db, remote,
         object : AuthRepository {
@@ -175,6 +194,22 @@ class SyncEngineTest {
         a.holidays.setHoliday(setOf(day), false)
         a.engine.syncNow("u1"); b.engine.syncNow("u1")
         assertTrue(b.holidays.getHolidays(setOf(day)).isEmpty())
+    }
+
+    @Test
+    fun dayNotesAndDebtsPropagate() = runTest {
+        val note = DayNote("n1", day, NoteKind.IOwe, "Ana", "cambio de guardia")
+        a.notes.upsert(note)
+        a.engine.syncNow("u1"); b.engine.syncNow("u1")
+        assertEquals(listOf(note), b.notes.observeNotes(day, day).first())
+        pause()
+        b.notes.setSettled("n1", true) // B salda la deuda
+        b.engine.syncNow("u1"); a.engine.syncNow("u1")
+        assertEquals(true, a.notes.observeDebts().first().single().settled)
+        pause()
+        a.notes.delete("n1")
+        a.engine.syncNow("u1"); b.engine.syncNow("u1")
+        assertTrue(b.notes.observeNotes(day, day).first().isEmpty())
     }
 
     @Test

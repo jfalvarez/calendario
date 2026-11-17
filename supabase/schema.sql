@@ -146,3 +146,39 @@ drop policy if exists app_config_select on public.app_config;
 create policy app_config_select on public.app_config for select to anon, authenticated using (true);
 
 insert into public.app_config (platform) values ('android'), ('desktop') on conflict do nothing;
+
+-- ---------------------------------------------------------------------------
+-- Notas por día y turnos debidos. `kind`: Note (nota libre), IOwe (debo un turno a `person`) u OwedToMe (`person` me
+-- debe un turno); `settled` marca que ya se devolvió. Mismo esquema de sincronización: borrado lógico + último cambio gana.
+-- ---------------------------------------------------------------------------
+create table if not exists public.day_notes (
+  owner_id           uuid    not null default auth.uid() references auth.users (id) on delete cascade,
+  id                 text    not null,
+  note_date          date    not null,
+  kind               text    not null check (kind in ('Note', 'IOwe', 'OwedToMe')),
+  person             text,
+  body               text    not null default '',
+  settled            boolean not null default false,
+  updated_at         bigint  not null,
+  deleted_at         bigint,
+  server_updated_at  timestamptz not null default now(),
+  primary key (owner_id, id)
+);
+
+create index if not exists day_notes_cursor_idx on public.day_notes (owner_id, server_updated_at);
+
+drop trigger if exists day_notes_lww on public.day_notes;
+create trigger day_notes_lww before insert or update on public.day_notes
+  for each row execute function public.apply_last_write_wins();
+
+alter table public.day_notes enable row level security;
+
+drop policy if exists day_notes_select on public.day_notes;
+drop policy if exists day_notes_insert on public.day_notes;
+drop policy if exists day_notes_update on public.day_notes;
+create policy day_notes_select on public.day_notes for select to authenticated
+  using (owner_id = (select auth.uid()));
+create policy day_notes_insert on public.day_notes for insert to authenticated
+  with check (owner_id = (select auth.uid()));
+create policy day_notes_update on public.day_notes for update to authenticated
+  using (owner_id = (select auth.uid())) with check (owner_id = (select auth.uid()));

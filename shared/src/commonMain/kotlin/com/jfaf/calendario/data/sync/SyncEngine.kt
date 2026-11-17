@@ -52,6 +52,7 @@ class SyncEngine(
     private val shiftDao = db.shiftDao()
     private val assignmentDao = db.shiftAssignmentDao()
     private val holidayDao = db.localHolidayDao()
+    private val noteDao = db.dayNoteDao()
     private val log = Logger.withTag("Sync")
     private val mutex = Mutex()
     private val requests = Channel<Unit>(Channel.CONFLATED)
@@ -86,7 +87,10 @@ class SyncEngine(
         _state.value = SyncState.Idle(lastSyncedAt)
         // Cambios locales pendientes → sincronizar tras una pausa (agrupa ediciones seguidas).
         launch {
-            combine(shiftDao.observeDirtyCount(), assignmentDao.observeDirtyCount(), holidayDao.observeDirtyCount()) { a, b, c -> a + b + c }
+            combine(
+                shiftDao.observeDirtyCount(), assignmentDao.observeDirtyCount(),
+                holidayDao.observeDirtyCount(), noteDao.observeDirtyCount(),
+            ) { counts -> counts.sum() }
                 .filter { it > 0 }
                 .debounce(debounceMs)
                 .collect { requestSync() }
@@ -128,6 +132,7 @@ class SyncEngine(
         if (last != null && last != userId) {
             assignmentDao.deleteAll()
             holidayDao.deleteAll()
+            noteDao.deleteAll()
             shiftDao.deleteAll()
             shiftDao.upsertAll(defaultShiftEntities())
         }
@@ -149,6 +154,11 @@ class SyncEngine(
         if (holidays.isNotEmpty()) {
             remote.upsertHolidays(holidays.map { it.toRemote(userId) })
             holidays.forEach { holidayDao.markClean(it.date, it.updatedAt) }
+        }
+        val notes = noteDao.getDirty()
+        if (notes.isNotEmpty()) {
+            remote.upsertDayNotes(notes.map { it.toRemote(userId) })
+            notes.forEach { noteDao.markClean(it.id, it.updatedAt) }
         }
     }
 
@@ -176,6 +186,14 @@ class SyncEngine(
             val local = holidayDao.getByDates(holidays.map { it.date }).associateBy { it.date }
             holidayDao.upsertAll(holidays.mapNotNull { mergeHoliday(local[it.date], it) })
             holidays.last().serverUpdatedAt?.let { cursor -> prefs.edit { it[holidayKey] = cursor } }
+        }
+
+        val noteKey = stringPreferencesKey("sync_cursor_day_notes_$userId")
+        val notes = remote.pullDayNotes(prefs.data.first()[noteKey])
+        if (notes.isNotEmpty()) {
+            val local = noteDao.getByIds(notes.map { it.id }).associateBy { it.id }
+            noteDao.upsertAll(notes.mapNotNull { mergeDayNote(local[it.id], it) })
+            notes.last().serverUpdatedAt?.let { cursor -> prefs.edit { it[noteKey] = cursor } }
         }
     }
 

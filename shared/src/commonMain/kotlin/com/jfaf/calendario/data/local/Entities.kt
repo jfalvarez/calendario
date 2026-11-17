@@ -51,3 +51,17 @@ data class LocalHolidayEntity(
     val deletedAt: Long?,
     val dirty: Boolean,
 )
+
+/** Nota de un día (v6). `kind` guarda el nombre de `NoteKind`; `settled` sólo importa en las deudas. */
+@Entity(tableName = "day_notes")
+data class DayNoteEntity(
+    @PrimaryKey val id: String,
+    val date: String,
+    val kind: String,
+    val person: String?,
+    val body: String,
+    val settled: Boolean,
+    val updatedAt: Long,
+    val deletedAt: Long?,
+    val dirty: Boolean,
+)

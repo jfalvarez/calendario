@@ -15,6 +15,7 @@ import androidx.navigation.compose.rememberNavController
 import com.jfaf.calendario.domain.model.AppStyle
 import com.jfaf.calendario.domain.model.ThemeMode
 import com.jfaf.calendario.presentation.calendar.CalendarScreen
+import com.jfaf.calendario.presentation.debts.DebtsScreen
 import com.jfaf.calendario.presentation.settings.SettingsScreen
 import com.jfaf.calendario.presentation.settings.SettingsViewModel
 import com.jfaf.calendario.presentation.shifts.ShiftsScreen
@@ -27,6 +28,7 @@ private object Routes {
     const val SHIFTS = "shifts"
     const val SETTINGS = "settings"
     const val STATS = "stats"
+    const val DEBTS = "debts"
 }
 
 /**
@@ -57,11 +59,13 @@ fun App(onDarkThemeChanged: (Boolean) -> Unit = {}) {
                             onOpenShifts = { navController.navigate(Routes.SHIFTS) },
                             onOpenSettings = { navController.navigate(Routes.SETTINGS) },
                             onOpenStats = { navController.navigate(Routes.STATS) },
+                            onOpenDebts = { navController.navigate(Routes.DEBTS) },
                         )
                     }
                     composable(Routes.SHIFTS) { ShiftsScreen(onBack = { navController.popBackStack() }) }
                     composable(Routes.SETTINGS) { SettingsScreen(onBack = { navController.popBackStack() }) }
                     composable(Routes.STATS) { StatsScreen(onBack = { navController.popBackStack() }) }
+                    composable(Routes.DEBTS) { DebtsScreen(onBack = { navController.popBackStack() }) }
                 }
             }
         }

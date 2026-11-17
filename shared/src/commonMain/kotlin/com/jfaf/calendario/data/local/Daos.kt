@@ -99,3 +99,37 @@ interface LocalHolidayDao {
     @Query("DELETE FROM local_holidays")
     suspend fun deleteAll()
 }
+
+@Dao
+interface DayNoteDao {
+    @Query("SELECT * FROM day_notes WHERE date BETWEEN :from AND :to AND deletedAt IS NULL ORDER BY date, updatedAt")
+    fun observeAlive(from: String, to: String): Flow<List<DayNoteEntity>>
+
+    @Query("SELECT * FROM day_notes WHERE kind != 'Note' AND deletedAt IS NULL ORDER BY date DESC, updatedAt DESC")
+    fun observeDebts(): Flow<List<DayNoteEntity>>
+
+    @Query("SELECT * FROM day_notes WHERE id = :id")
+    suspend fun get(id: String): DayNoteEntity?
+
+    @Upsert
+    suspend fun upsert(entity: DayNoteEntity)
+
+    @Upsert
+    suspend fun upsertAll(entities: List<DayNoteEntity>)
+
+    // --- sincronización ---
+    @Query("SELECT * FROM day_notes WHERE id IN (:ids)")
+    suspend fun getByIds(ids: List<String>): List<DayNoteEntity>
+
+    @Query("SELECT * FROM day_notes WHERE dirty = 1")
+    suspend fun getDirty(): List<DayNoteEntity>
+
+    @Query("UPDATE day_notes SET dirty = 0 WHERE id = :id AND updatedAt = :updatedAt")
+    suspend fun markClean(id: String, updatedAt: Long)
+
+    @Query("SELECT COUNT(*) FROM day_notes WHERE dirty = 1")
+    fun observeDirtyCount(): Flow<Int>
+
+    @Query("DELETE FROM day_notes")
+    suspend fun deleteAll()
+}
