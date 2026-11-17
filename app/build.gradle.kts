@@ -25,8 +25,21 @@ android {
         buildConfigField("String", "SUPABASE_ANON_KEY", "\"${localProps.getProperty("supabase.anonKey", "")}\"")
     }
 
+    // Clave de subida a Play (fuera de git): se declara en local.properties (ver Calendario-arquitectura/10-distribucion.md).
+    // Sin esas propiedades la release sale sin firmar y la compilación no falla.
+    val uploadStore = localProps.getProperty("release.storeFile")
+    if (uploadStore != null) {
+        signingConfigs.create("upload") {
+            storeFile = rootProject.file(uploadStore)
+            storePassword = localProps.getProperty("release.storePassword")
+            keyAlias = localProps.getProperty("release.keyAlias")
+            keyPassword = localProps.getProperty("release.keyPassword")
+        }
+    }
+
     buildTypes {
         getByName("release") {
+            signingConfigs.findByName("upload")?.let { signingConfig = it }
             isMinifyEnabled = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
