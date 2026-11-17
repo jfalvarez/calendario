@@ -7,10 +7,14 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import com.jfaf.calendario.presentation.App
+import org.koin.android.ext.android.inject
 
 class MainActivity : ComponentActivity() {
+    private val updateLauncher: PlayUpdateLauncher by inject()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        updateLauncher.attach(this)
         setContent {
             App(onDarkThemeChanged = { dark ->
                 // Iconos de las barras del sistema legibles según el tema elegido en la app (no sólo el del sistema).
@@ -19,5 +23,15 @@ class MainActivity : ComponentActivity() {
                 enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
             })
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        updateLauncher.resumeIfInProgress()
+    }
+
+    override fun onDestroy() {
+        updateLauncher.detach(this)
+        super.onDestroy()
     }
 }

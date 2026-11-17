@@ -55,6 +55,7 @@ dependencies {
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.process)
     implementation(libs.koin.android)
+    implementation(libs.play.app.update)
 }
 
 kotlin {
