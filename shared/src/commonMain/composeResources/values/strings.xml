@@ -170,4 +170,7 @@
     <string name="debts_settled_section">Saldadas</string>
     <string name="debt_mark_settled">Marcar como saldada</string>
     <string name="debt_reopen">Reabrir</string>
+    <string name="diagnostics_title">Diagnóstico</string>
+    <string name="test_report_send">Enviar informe de prueba</string>
+    <string name="test_report_sent">Informe enviado</string>
 </resources>

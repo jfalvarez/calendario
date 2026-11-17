@@ -15,6 +15,9 @@
         android:label="@string/app_label"
         android:supportsRtl="true"
         android:theme="@style/Theme.Calendario">
+        <!-- Sentry se inicia a mano en CalendarioApplication (con la clave de local.properties y ajustes de privacidad) -->
+        <meta-data android:name="io.sentry.auto-init" android:value="false" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"

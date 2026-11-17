@@ -11,6 +11,7 @@ import com.jfaf.calendario.data.prefs.createPreferencesDataStore
 import com.jfaf.calendario.data.remote.AppPlatform
 import com.jfaf.calendario.data.remote.SupabaseConfig
 import com.jfaf.calendario.domain.repository.AppVersionProvider
+import com.jfaf.calendario.domain.repository.ErrorReporter
 import com.jfaf.calendario.presentation.settings.ReminderSystem
 import com.jfaf.calendario.presentation.update.UpdateLauncher
 import org.koin.dsl.module
@@ -55,6 +56,7 @@ fun desktopModule(dataDir: File = appDataDir()) = module {
     }
     single { loadSupabaseConfig() }
     single { AppPlatform("desktop") }
+    single<ErrorReporter> { SentryErrorReporter() }
     // Los avisos de turno son sólo del móvil: en escritorio la sección se oculta.
     single<ReminderSystem> {
         object : ReminderSystem {

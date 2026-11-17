@@ -8,6 +8,7 @@ import com.jfaf.calendario.data.sync.SyncEngine
 import com.jfaf.calendario.di.appModules
 import com.jfaf.calendario.presentation.update.AppForegroundEvents
 import com.jfaf.calendario.widget.ShiftWidgetUpdater
+import com.jfaf.calendario.crash.CrashReporting
 import com.jfaf.calendario.reminder.ReminderUpdater
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.startKoin
@@ -15,6 +16,7 @@ import org.koin.core.context.startKoin
 class CalendarioApplication : Application() {
     override fun onCreate() {
         super.onCreate()
+        CrashReporting.init(this) // lo primero: recoge también los fallos al arrancar Koin
         val koin = startKoin {
             androidContext(this@CalendarioApplication)
             modules(appModules + androidModule)

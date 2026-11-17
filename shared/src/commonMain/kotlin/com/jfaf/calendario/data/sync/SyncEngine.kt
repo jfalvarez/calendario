@@ -13,6 +13,8 @@ import com.jfaf.calendario.data.repository.nowMillis
 import com.jfaf.calendario.domain.model.AuthState
 import com.jfaf.calendario.domain.model.SyncState
 import com.jfaf.calendario.domain.repository.AuthRepository
+import com.jfaf.calendario.domain.repository.ErrorReporter
+import com.jfaf.calendario.domain.repository.NoOpErrorReporter
 import com.jfaf.calendario.domain.repository.SyncRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -48,6 +50,7 @@ class SyncEngine(
     private val periodMs: Long = DEFAULT_PERIOD_MS,
     private val debounceMs: Long = DEBOUNCE_MS,
     private val clock: () -> Long = ::nowMillis,
+    private val errors: ErrorReporter = NoOpErrorReporter,
 ) : SyncRepository {
     private val shiftDao = db.shiftDao()
     private val assignmentDao = db.shiftAssignmentDao()
@@ -119,6 +122,8 @@ class SyncEngine(
             throw e
         } catch (e: Throwable) {
             log.w(e) { "Fallo de sincronización" }
+            // Sin conexión es lo normal en un móvil; cualquier otro fallo sí interesa.
+            if (!looksOffline(e)) errors.report(e, "sync")
             _state.value = SyncState.Failed(offline = looksOffline(e))
         }
     }

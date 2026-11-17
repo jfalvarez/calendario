@@ -23,6 +23,8 @@ android {
         versionName = "0.1.0"
         buildConfigField("String", "SUPABASE_URL", "\"${localProps.getProperty("supabase.url", "")}\"")
         buildConfigField("String", "SUPABASE_ANON_KEY", "\"${localProps.getProperty("supabase.anonKey", "")}\"")
+        // DSN de Sentry (informes de fallos); vacío = desactivado. Se declara en local.properties como `sentry.dsn`.
+        buildConfigField("String", "SENTRY_DSN", "\"${localProps.getProperty("sentry.dsn", "")}\"")
     }
 
     // Clave de subida a Play (fuera de git): se declara en local.properties (ver Calendario-arquitectura/10-distribucion.md).
@@ -70,6 +72,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.process)
     implementation(libs.koin.android)
     implementation(libs.play.app.update)
+    implementation(libs.sentry.android)
     implementation(libs.androidx.glance.appwidget) // widget de pantalla de inicio (turnos de hoy y mañana)
 }
 

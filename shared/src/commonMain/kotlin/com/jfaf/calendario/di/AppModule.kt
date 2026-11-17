@@ -118,7 +118,7 @@ val dataModule = module {
     single<AuthRepository> { SupabaseAuthRepository(get()) }
     single<RemoteDataSource> { SupabaseRemoteDataSource(get()) }
     single<AppConfigRepository> { SupabaseAppConfigRepository(get(), get()) }
-    single { SyncEngine(get(), get(), get(), get(), CoroutineScope(SupervisorJob() + Dispatchers.Default)) }
+    single { SyncEngine(get(), get(), get(), get(), CoroutineScope(SupervisorJob() + Dispatchers.Default), errors = get()) }
     single<SyncRepository> { get<SyncEngine>() }
     single { DataStoreSettingsRepository(get()) } binds arrayOf(SettingsRepository::class, ReminderSettingsRepository::class)
     single { AppForegroundEvents() }
