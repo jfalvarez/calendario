@@ -2,6 +2,8 @@ package com.jfaf.calendario.di
 
 import com.jfaf.calendario.data.local.CalendarDatabase
 import com.jfaf.calendario.data.remote.RemoteDataSource
+import com.jfaf.calendario.data.remote.SupabaseAppConfigRepository
+import com.jfaf.calendario.domain.repository.AppConfigRepository
 import com.jfaf.calendario.data.remote.SupabaseAuthRepository
 import com.jfaf.calendario.data.remote.SupabaseConfig
 import com.jfaf.calendario.data.remote.SupabaseRemoteDataSource
@@ -60,7 +62,7 @@ import com.jfaf.calendario.presentation.calendar.CalendarViewModel
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 
-/** `CalendarDatabase`, `DataStore<Preferences>` y `SupabaseConfig` los aporta cada plataforma. */
+/** `CalendarDatabase`, `DataStore<Preferences>` y `SupabaseConfig` y `AppPlatform` los aporta cada plataforma. */
 val dataModule = module {
     single { get<CalendarDatabase>().shiftDao() }
     single { get<CalendarDatabase>().shiftAssignmentDao() }
@@ -92,6 +94,7 @@ val dataModule = module {
     }
     single<AuthRepository> { SupabaseAuthRepository(get()) }
     single<RemoteDataSource> { SupabaseRemoteDataSource(get()) }
+    single<AppConfigRepository> { SupabaseAppConfigRepository(get(), get()) }
     single { SyncEngine(get(), get(), get(), get(), CoroutineScope(SupervisorJob() + Dispatchers.Default)) }
     single<SyncRepository> { get<SyncEngine>() }
     single<SettingsRepository> { DataStoreSettingsRepository(get()) }

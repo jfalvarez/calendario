@@ -8,6 +8,7 @@ import com.jfaf.calendario.data.local.CalendarDatabase
 import com.jfaf.calendario.data.local.buildCalendarDatabase
 import com.jfaf.calendario.data.prefs.USER_PREFERENCES_FILE
 import com.jfaf.calendario.data.prefs.createPreferencesDataStore
+import com.jfaf.calendario.data.remote.AppPlatform
 import com.jfaf.calendario.data.remote.SupabaseConfig
 import org.koin.dsl.module
 import java.io.File
@@ -38,4 +39,5 @@ fun desktopModule(dataDir: File = appDataDir()) = module {
         )
     }
     single { loadSupabaseConfig() }
+    single { AppPlatform("desktop") }
 }

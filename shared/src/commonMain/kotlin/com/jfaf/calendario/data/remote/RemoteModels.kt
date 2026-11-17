@@ -62,3 +62,13 @@ interface RemoteDataSource {
     suspend fun upsertHolidays(rows: List<RemoteLocalHoliday>)
     suspend fun pullHolidays(since: String?): List<RemoteLocalHoliday>
 }
+
+/** Fila de `public.app_config` en Supabase: política de versiones de una plataforma. */
+@Serializable
+data class RemoteAppConfig(
+    val platform: String,
+    @SerialName("min_version_code") val minVersionCode: Int,
+    @SerialName("recommended_version_code") val recommendedVersionCode: Int,
+    val message: String? = null,
+    @SerialName("store_url") val storeUrl: String? = null,
+)

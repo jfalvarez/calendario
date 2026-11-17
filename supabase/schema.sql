@@ -124,3 +124,25 @@ create policy holidays_insert on public.local_holidays for insert to authenticat
   with check (owner_id = (select auth.uid()));
 create policy holidays_update on public.local_holidays for update to authenticated
   using (owner_id = (select auth.uid())) with check (owner_id = (select auth.uid()));
+
+-- ---------------------------------------------------------------------------
+-- Política de versiones (actualizaciones forzadas). Una fila por plataforma; la app la lee al arrancar.
+-- Solo se edita desde el panel de Supabase: no hay políticas de insert/update/delete. No guarda datos de usuario.
+-- Ej.: update public.app_config set min_version_code = 13, updated_at = now() where platform = 'android';
+-- ---------------------------------------------------------------------------
+create table if not exists public.app_config (
+  platform                  text primary key check (platform in ('android', 'desktop')),
+  min_version_code          integer not null default 1,
+  recommended_version_code  integer not null default 1,
+  message                   text,
+  store_url                 text,
+  updated_at                timestamptz not null default now(),
+  check (recommended_version_code >= min_version_code)
+);
+
+alter table public.app_config enable row level security;
+
+drop policy if exists app_config_select on public.app_config;
+create policy app_config_select on public.app_config for select to anon, authenticated using (true);
+
+insert into public.app_config (platform) values ('android'), ('desktop') on conflict do nothing;
