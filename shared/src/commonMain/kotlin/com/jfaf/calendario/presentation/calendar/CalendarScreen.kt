@@ -81,6 +81,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.text.KeyboardOptions
 import com.jfaf.calendario.domain.model.CalendarDay
+import com.jfaf.calendario.domain.model.DayNoteDraft
+import com.jfaf.calendario.domain.model.DayNoteMarkers
+import androidx.compose.material.icons.filled.StickyNote2
+import androidx.compose.material.icons.filled.SwapHoriz
 import com.jfaf.calendario.domain.model.Shift
 import com.jfaf.calendario.resources.*
 import com.jfaf.calendario.presentation.common.color
@@ -98,6 +102,7 @@ class CalendarActions(
     val onOpenShifts: () -> Unit = {},
     val onOpenSettings: () -> Unit = {},
     val onOpenStats: () -> Unit = {},
+    val onOpenDebts: () -> Unit = {},
     val onModeChange: (CalendarMode) -> Unit = {},
     val onShiftSelected: (String) -> Unit = {},
     val onDayClick: (LocalDate) -> Unit = {},
@@ -114,13 +119,23 @@ class CalendarActions(
     val onAssign: (shiftId: String, asSecond: Boolean) -> Unit = { _, _ -> },
     val onRepeat: (times: Int) -> Unit = {},
     val onSyncClick: () -> Unit = {},
+    val onDismissNotes: () -> Unit = {},
+    val onSaveNote: (DayNoteDraft) -> Unit = {},
+    val onSettleNote: (id: String, settled: Boolean) -> Unit = { _, _ -> },
+    val onDeleteNote: (id: String) -> Unit = {},
 )
 
 /** Pantalla con estado (conecta el ViewModel) y contenido sin estado (testeable/previsualizable). */
 @Composable
-fun CalendarScreen(onOpenShifts: () -> Unit, onOpenSettings: () -> Unit, onOpenStats: () -> Unit, viewModel: CalendarViewModel = koinViewModel()) {
+fun CalendarScreen(
+    onOpenShifts: () -> Unit,
+    onOpenSettings: () -> Unit,
+    onOpenStats: () -> Unit,
+    onOpenDebts: () -> Unit,
+    viewModel: CalendarViewModel = koinViewModel(),
+) {
     val state by viewModel.uiState.collectAsState()
-    val actions = remember(viewModel, onOpenShifts, onOpenSettings, onOpenStats) {
+    val actions = remember(viewModel, onOpenShifts, onOpenSettings, onOpenStats, onOpenDebts) {
         CalendarActions(
             onPreviousMonth = viewModel::onPreviousMonth,
             onNextMonth = viewModel::onNextMonth,
@@ -128,6 +143,7 @@ fun CalendarScreen(onOpenShifts: () -> Unit, onOpenSettings: () -> Unit, onOpenS
             onOpenShifts = onOpenShifts,
             onOpenSettings = onOpenSettings,
             onOpenStats = onOpenStats,
+            onOpenDebts = onOpenDebts,
             onModeChange = viewModel::onModeChange,
             onShiftSelected = viewModel::onShiftSelected,
             onDayClick = viewModel::onDayClick,
@@ -144,6 +160,10 @@ fun CalendarScreen(onOpenShifts: () -> Unit, onOpenSettings: () -> Unit, onOpenS
             onAssign = viewModel::onAssign,
             onRepeat = viewModel::onRepeat,
             onSyncClick = viewModel::onSyncClick,
+            onDismissNotes = viewModel::onDismissNotes,
+            onSaveNote = viewModel::onSaveNote,
+            onSettleNote = viewModel::onSettleNote,
+            onDeleteNote = viewModel::onDeleteNote,
         )
     }
     CalendarContent(state, actions)
@@ -170,7 +190,7 @@ fun CalendarContent(state: CalendarUiState, actions: CalendarActions) {
                 Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, stringResource(Res.string.next_month))
             }
             FilledTonalButton(onClick = actions.onToday) { Text(stringResource(Res.string.today)) }
-            OverflowMenu(actions.onOpenShifts, actions.onOpenStats, actions.onOpenSettings)
+            OverflowMenu(actions.onOpenShifts, actions.onOpenStats, actions.onOpenDebts, actions.onOpenSettings)
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             FilterChip(
@@ -182,6 +202,11 @@ fun CalendarContent(state: CalendarUiState, actions: CalendarActions) {
                 selected = state.mode == CalendarMode.Edit,
                 onClick = { actions.onModeChange(CalendarMode.Edit) },
                 label = { Text(stringResource(Res.string.mode_edit)) },
+            )
+            FilterChip(
+                selected = state.mode == CalendarMode.Notes,
+                onClick = { actions.onModeChange(CalendarMode.Notes) },
+                label = { Text(stringResource(Res.string.mode_notes)) },
             )
             Spacer(Modifier.weight(1f))
             state.syncIndicator?.let { SyncStatus(it, actions.onSyncClick) }
@@ -199,6 +224,7 @@ fun CalendarContent(state: CalendarUiState, actions: CalendarActions) {
                             day = day,
                             isToday = day.date == state.today,
                             isSelected = day.date in state.selection,
+                            markers = state.noteMarkers[day.date],
                             onClick = {
                                 // Pintar un turno en el día: respuesta háptica (en escritorio no hace nada).
                                 if (state.mode == CalendarMode.Paint && state.paintShiftId != null) {
@@ -221,6 +247,11 @@ fun CalendarContent(state: CalendarUiState, actions: CalendarActions) {
                 when (state.mode) {
                     CalendarMode.Paint -> PaintBar(state, actions)
                     CalendarMode.Edit -> EditBar(state, actions)
+                    CalendarMode.Notes -> Text(
+                        stringResource(Res.string.notes_mode_hint),
+                        style = MaterialTheme.typography.labelSmall,
+                        modifier = Modifier.padding(vertical = 8.dp),
+                    )
                 }
             }
         }
@@ -233,6 +264,17 @@ fun CalendarContent(state: CalendarUiState, actions: CalendarActions) {
         }
         CalendarDialog.Repeat -> RepeatDialog(actions.onDismissDialog, actions.onRepeat)
         null -> Unit
+    }
+
+    state.notesDialog?.let { notes ->
+        NotesDialog(
+            state = notes,
+            monthName = monthNames[notes.date.month.ordinal],
+            onDismiss = actions.onDismissNotes,
+            onSave = actions.onSaveNote,
+            onSettle = actions.onSettleNote,
+            onDelete = actions.onDeleteNote,
+        )
     }
 }
 
@@ -379,6 +421,7 @@ private fun RowScope.DayCell(
     day: CalendarDay,
     isToday: Boolean,
     isSelected: Boolean,
+    markers: DayNoteMarkers?,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
 ) {
@@ -451,6 +494,7 @@ private fun RowScope.DayCell(
                 day.shifts.forEach { ShiftTag(it, Modifier.fillMaxWidth()) }
             }
         }
+if (markers != null) NoteMarker(markers)
     }
 }
 
@@ -467,7 +511,7 @@ private fun ShiftTag(shift: Shift, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun OverflowMenu(onOpenShifts: () -> Unit, onOpenStats: () -> Unit, onOpenSettings: () -> Unit) {
+private fun OverflowMenu(onOpenShifts: () -> Unit, onOpenStats: () -> Unit, onOpenDebts: () -> Unit, onOpenSettings: () -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     Box {
         IconButton(onClick = { expanded = true }) {
@@ -477,6 +521,10 @@ private fun OverflowMenu(onOpenShifts: () -> Unit, onOpenStats: () -> Unit, onOp
             DropdownMenuItem(
                 text = { Text(stringResource(Res.string.manage_shifts)) },
                 onClick = { expanded = false; onOpenShifts() },
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(Res.string.debts_title)) },
+                onClick = { expanded = false; onOpenDebts() },
             )
             DropdownMenuItem(
                 text = { Text(stringResource(Res.string.stats_title)) },
@@ -528,5 +576,24 @@ private fun SyncStatus(indicator: SyncIndicator, onClick: () -> Unit) {
             )
         }
         Text(label, style = MaterialTheme.typography.labelSmall, color = color, maxLines = 1)
+    }
+}
+
+/**
+ * Píldora de ancho completo, como la de un turno, para el día con notas y/o turnos debidos sin saldar. Lleva colores
+ * propios (no los de un turno) para no confundirse con ellos: terciario si hay deuda pendiente, secundario si sólo hay nota.
+ */
+@Composable
+private fun NoteMarker(markers: DayNoteMarkers) {
+    val colors = MaterialTheme.colorScheme
+    val container = if (markers.hasOpenDebt) colors.tertiaryContainer else colors.secondaryContainer
+    val content = if (markers.hasOpenDebt) colors.onTertiaryContainer else colors.onSecondaryContainer
+    Row(
+        Modifier.fillMaxWidth().heightIn(min = 17.dp).background(container, CircleShape),
+        horizontalArrangement = Arrangement.spacedBy(3.dp, Alignment.CenterHorizontally),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (markers.hasNote) Icon(Icons.Filled.StickyNote2, null, Modifier.size(13.dp), tint = content)
+        if (markers.hasOpenDebt) Icon(Icons.Filled.SwapHoriz, null, Modifier.size(15.dp), tint = content)
     }
 }

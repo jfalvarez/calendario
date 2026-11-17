@@ -1,9 +1,11 @@
 package com.jfaf.calendario.data.sync
 
+import com.jfaf.calendario.data.local.DayNoteEntity
 import com.jfaf.calendario.data.local.LocalHolidayEntity
 import com.jfaf.calendario.data.local.ShiftAssignmentEntity
 import com.jfaf.calendario.data.local.ShiftEntity
 import com.jfaf.calendario.data.remote.RemoteAssignment
+import com.jfaf.calendario.data.remote.RemoteDayNote
 import com.jfaf.calendario.data.remote.RemoteLocalHoliday
 import com.jfaf.calendario.data.remote.RemoteShift
 
@@ -58,3 +60,21 @@ internal fun ShiftEntity.toRemote(ownerId: String) = RemoteShift(
 
 internal fun ShiftAssignmentEntity.toRemote(ownerId: String) =
     RemoteAssignment(ownerId, id, date, slot, shiftId, updatedAt, deletedAt)
+
+internal fun mergeDayNote(local: DayNoteEntity?, remote: RemoteDayNote): DayNoteEntity? {
+    if (local != null && local.updatedAt > remote.updatedAt) return null
+    return DayNoteEntity(
+        id = remote.id,
+        date = remote.date,
+        kind = remote.kind,
+        person = remote.person,
+        body = remote.body,
+        settled = remote.settled,
+        updatedAt = remote.updatedAt,
+        deletedAt = remote.deletedAt,
+        dirty = false,
+    )
+}
+
+internal fun DayNoteEntity.toRemote(ownerId: String) =
+    RemoteDayNote(ownerId, id, date, kind, person, body, settled, updatedAt, deletedAt)

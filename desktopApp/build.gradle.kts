@@ -21,6 +21,7 @@ dependencies {
     implementation(project(":shared"))
     implementation(compose.desktop.currentOs)
     implementation(libs.kotlinx.coroutines.swing)
+    implementation(libs.sentry.jvm)
 }
 
 compose.desktop {
@@ -77,4 +78,17 @@ val generateSupabaseConfig by tasks.registering {
         )
     }
 }
-tasks.processResources { from(generateSupabaseConfig, generateAppVersion) }
+
+// Escritorio: clave de Sentry (informes de fallos) de local.properties; vacía = desactivado.
+val generateSentryConfig by tasks.registering {
+    val outDir = layout.buildDirectory.dir("generated/sentry")
+    val propsFile = rootProject.file("local.properties")
+    inputs.files(propsFile).optional()
+    outputs.dir(outDir)
+    doLast {
+        val props = Properties().apply { if (propsFile.exists()) propsFile.inputStream().use { load(it) } }
+        val file = File(outDir.get().asFile, "sentry.properties").apply { parentFile.mkdirs() }
+        file.writeText("dsn=${props.getProperty("sentry.dsn", "")}\n")
+    }
+}
+tasks.processResources { from(generateSupabaseConfig, generateAppVersion, generateSentryConfig) }

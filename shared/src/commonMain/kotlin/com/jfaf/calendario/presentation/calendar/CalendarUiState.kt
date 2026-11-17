@@ -2,13 +2,18 @@ package com.jfaf.calendario.presentation.calendar
 
 import com.jfaf.calendario.domain.model.CalendarDay
 import com.jfaf.calendario.domain.model.CalendarMonth
+import com.jfaf.calendario.domain.model.DayNote
+import com.jfaf.calendario.domain.model.DayNoteMarkers
 import com.jfaf.calendario.domain.model.Shift
 import kotlinx.datetime.LocalDate
 
 /** Pintar: elegir un turno y tocar días. Editar: seleccionar días y aplicar acciones sobre ellos. */
-enum class CalendarMode { Paint, Edit }
+enum class CalendarMode { Paint, Edit, Notes }
 
 enum class CalendarDialog { Assign, Repeat }
+
+/** Notas del día abierto en el modo Notas, y personas ya usadas en deudas (para sugerirlas al escribir). */
+data class NotesDialogState(val date: LocalDate, val notes: List<DayNote>, val knownPeople: List<String>)
 
 /** Estado inmutable que pinta la pantalla (flujo de datos unidireccional). */
 data class CalendarUiState(
@@ -25,4 +30,7 @@ data class CalendarUiState(
     val dialog: CalendarDialog? = null,
     /** Estado de la sincronización con el servidor; `null` si no hay cuenta (no se muestra). */
     val syncIndicator: SyncIndicator? = null,
+    /** Marcas de notas y deudas pendientes por día del mes mostrado. */
+    val noteMarkers: Map<LocalDate, DayNoteMarkers> = emptyMap(),
+    val notesDialog: NotesDialogState? = null,
 )

@@ -49,7 +49,7 @@ class ObserveMonthUseCase(
 }
 
 /** El festivo local manda sobre el nacional: es lo que el usuario ha marcado expresamente. */
-private fun holidayOf(date: LocalDate, national: Map<LocalDate, String>, local: Set<LocalDate>): Holiday? = when {
+internal fun holidayOf(date: LocalDate, national: Map<LocalDate, String>, local: Set<LocalDate>): Holiday? = when {
     date in local -> Holiday(date, national[date], isLocal = true)
     else -> national[date]?.let { Holiday(date, it, isLocal = false) }
 }

@@ -52,6 +52,23 @@ data class RemoteLocalHoliday(
     @SerialName("server_updated_at") val serverUpdatedAt: String? = null,
 )
 
+/** Fila de `public.day_notes` en Supabase. */
+@OptIn(ExperimentalSerializationApi::class)
+@Serializable
+data class RemoteDayNote(
+    @SerialName("owner_id") val ownerId: String,
+    val id: String,
+    @SerialName("note_date") val date: String,
+    val kind: String,
+    val person: String? = null,
+    val body: String,
+    val settled: Boolean = false,
+    @SerialName("updated_at") val updatedAt: Long,
+    @SerialName("deleted_at") val deletedAt: Long? = null,
+    @EncodeDefault(EncodeDefault.Mode.NEVER)
+    @SerialName("server_updated_at") val serverUpdatedAt: String? = null,
+)
+
 /** Acceso al servidor; lo implementa Supabase y los tests lo sustituyen por un falso. */
 interface RemoteDataSource {
     suspend fun upsertShifts(rows: List<RemoteShift>)
@@ -61,6 +78,8 @@ interface RemoteDataSource {
     suspend fun pullAssignments(since: String?): List<RemoteAssignment>
     suspend fun upsertHolidays(rows: List<RemoteLocalHoliday>)
     suspend fun pullHolidays(since: String?): List<RemoteLocalHoliday>
+    suspend fun upsertDayNotes(rows: List<RemoteDayNote>)
+    suspend fun pullDayNotes(since: String?): List<RemoteDayNote>
 }
 
 /** Fila de `public.app_config` en Supabase: política de versiones de una plataforma. */

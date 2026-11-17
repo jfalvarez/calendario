@@ -16,6 +16,7 @@ import java.awt.event.WindowAdapter
 import java.awt.event.WindowEvent
 
 fun main() {
+    CrashReporting.init(loadAppVersion().let { "${it.versionName}+${it.versionCode}" }) // lo primero: recoge también los fallos al arrancar
     val koin = startKoin { modules(appModules + desktopModule()) }.koin
     val sync = koin.get<SyncEngine>()
     val foreground = koin.get<AppForegroundEvents>()
