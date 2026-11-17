@@ -13,6 +13,10 @@ import com.jfaf.calendario.data.remote.SupabaseConfig
 import com.jfaf.calendario.domain.repository.AppVersionProvider
 import com.jfaf.calendario.presentation.update.UpdateLauncher
 import com.jfaf.calendario.widget.ShiftWidgetUpdater
+import com.jfaf.calendario.presentation.settings.ReminderSystem
+import com.jfaf.calendario.reminder.AndroidReminderSystem
+import com.jfaf.calendario.reminder.ReminderScheduler
+import com.jfaf.calendario.reminder.ReminderUpdater
 import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.bind
 import org.koin.dsl.module
@@ -29,6 +33,9 @@ val androidModule = module {
     single { SupabaseConfig(BuildConfig.SUPABASE_URL, BuildConfig.SUPABASE_ANON_KEY) }
     single { AppPlatform("android") }
     single { ShiftWidgetUpdater(androidContext(), get(), get()) }
+    single { AndroidReminderSystem(androidContext()) } bind ReminderSystem::class
+    single { ReminderScheduler(androidContext(), get()) }
+    single { ReminderUpdater(get(), get(), get(), get(), get()) }
     // Play In-App Updates con la ficha de la tienda como plan B (ver PlayUpdateLauncher).
     single { PlayUpdateLauncher(androidContext(), get()) } bind UpdateLauncher::class
     single<AppVersionProvider> {

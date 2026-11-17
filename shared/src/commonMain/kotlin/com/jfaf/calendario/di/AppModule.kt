@@ -26,6 +26,12 @@ import com.jfaf.calendario.data.repository.SystemTodayProvider
 import com.jfaf.calendario.data.repository.UuidIdGenerator
 import com.jfaf.calendario.domain.repository.IdGenerator
 import com.jfaf.calendario.domain.repository.SettingsRepository
+import com.jfaf.calendario.domain.repository.ReminderSettingsRepository
+import com.jfaf.calendario.domain.usecase.ObserveReminderSettingsUseCase
+import com.jfaf.calendario.domain.usecase.PlanNextReminderUseCase
+import com.jfaf.calendario.domain.usecase.SetReminderEnabledUseCase
+import com.jfaf.calendario.domain.usecase.SetReminderTimeUseCase
+import org.koin.dsl.binds
 import com.jfaf.calendario.domain.usecase.ObserveAppStyleUseCase
 import com.jfaf.calendario.domain.usecase.SetAppStyleUseCase
 import com.jfaf.calendario.domain.usecase.ObserveThemeModeUseCase
@@ -104,7 +110,7 @@ val dataModule = module {
     single<AppConfigRepository> { SupabaseAppConfigRepository(get(), get()) }
     single { SyncEngine(get(), get(), get(), get(), CoroutineScope(SupervisorJob() + Dispatchers.Default)) }
     single<SyncRepository> { get<SyncEngine>() }
-    single<SettingsRepository> { DataStoreSettingsRepository(get()) }
+    single { DataStoreSettingsRepository(get()) } binds arrayOf(SettingsRepository::class, ReminderSettingsRepository::class)
     single { AppForegroundEvents() }
 }
 
@@ -113,6 +119,10 @@ val domainModule = module {
     factory { ObserveStatsUseCase(get(), get()) }
     factory { ObserveMonthUseCase(get(), get(), get()) }
     factory { ObserveUpcomingDaysUseCase(get(), get(), get()) }
+    factory { ObserveReminderSettingsUseCase(get()) }
+    factory { SetReminderEnabledUseCase(get()) }
+    factory { SetReminderTimeUseCase(get()) }
+    factory { PlanNextReminderUseCase(get(), get(), get()) }
     factory { PaintDayUseCase(get()) }
     factory { SignInUseCase(get()) }
     factory { SignUpUseCase(get()) }

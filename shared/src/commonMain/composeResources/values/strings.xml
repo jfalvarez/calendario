@@ -76,6 +76,13 @@
 
     <string name="more_options">Más opciones</string>
     <string name="settings_title">Ajustes</string>
+    <string name="reminders_title">Recordatorios</string>
+    <string name="reminder_enable">Avisarme la víspera de cada turno</string>
+    <string name="reminder_enable_desc">Recibirás una notificación con tu turno del día siguiente.</string>
+    <string name="reminder_time">Hora del aviso</string>
+    <string name="reminder_permission_denied">Para recibir avisos, permite las notificaciones de NurseOClock en los ajustes del sistema.</string>
+    <string name="reminder_pick_time">Hora del aviso</string>
+    <string name="accept">Aceptar</string>
     <string name="app_style">Estilo</string>
     <string name="style_pop">Pop</string>
     <string name="style_pop_desc">Días pintados con el color del turno. Vivo y atrevido.</string>

@@ -16,6 +16,21 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Switch
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimePicker
+import androidx.compose.material3.rememberTimePickerState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import com.jfaf.calendario.resources.accept
+import com.jfaf.calendario.resources.cancel
+import com.jfaf.calendario.resources.reminder_enable
+import com.jfaf.calendario.resources.reminder_enable_desc
+import com.jfaf.calendario.resources.reminder_permission_denied
+import com.jfaf.calendario.resources.reminder_pick_time
+import com.jfaf.calendario.resources.reminder_time
+import com.jfaf.calendario.resources.reminders_title
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -72,9 +87,11 @@ fun SettingsScreen(
     }
     val mode by viewModel.themeMode.collectAsState()
     val style by viewModel.appStyle.collectAsState()
+    val reminder by viewModel.reminder.collectAsState()
     SettingsContent(
         mode ?: ThemeMode.System, style ?: AppStyle.Pop, onBack,
         viewModel::onThemeModeSelected, viewModel::onAppStyleSelected, account, accountActions,
+        reminder, viewModel::onReminderEnabledChange, viewModel::onReminderTimeSelected,
     )
 }
 
@@ -88,6 +105,9 @@ fun SettingsContent(
     onAppStyleSelected: (AppStyle) -> Unit,
     account: AccountUiState,
     accountActions: AccountActions,
+    reminder: ReminderUiState = ReminderUiState(),
+    onReminderEnabledChange: (Boolean) -> Unit = {},
+    onReminderTimeSelected: (Int) -> Unit = {},
 ) {
     Scaffold(
         topBar = {
@@ -106,6 +126,8 @@ fun SettingsContent(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             AccountSection(account, accountActions)
+
+            if (reminder.supported) ReminderSection(reminder, onReminderEnabledChange, onReminderTimeSelected)
 
             Text(stringResource(Res.string.app_style), style = MaterialTheme.typography.titleMedium)
             AppStyle.entries.forEach { StyleCard(it, it == appStyle, onAppStyleSelected) }
@@ -177,3 +199,68 @@ private fun StyleCard(style: AppStyle, selected: Boolean, onSelect: (AppStyle) -
         }
     }
 }
+
+/** Interruptor de avisos y, si están activos, la hora a la que se emiten (la víspera del turno). */
+@Composable
+private fun ReminderSection(
+    state: ReminderUiState,
+    onEnabledChange: (Boolean) -> Unit,
+    onTimeSelected: (Int) -> Unit,
+) {
+    var picking by remember { mutableStateOf(false) }
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(stringResource(Res.string.reminders_title), style = MaterialTheme.typography.titleMedium)
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text(stringResource(Res.string.reminder_enable))
+                Text(
+                    stringResource(Res.string.reminder_enable_desc), style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Switch(checked = state.enabled, onCheckedChange = onEnabledChange)
+        }
+        if (state.permissionDenied) {
+            Text(
+                stringResource(Res.string.reminder_permission_denied), style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+            )
+        }
+        if (state.enabled) {
+            Row(
+                Modifier.fillMaxWidth().clickable { picking = true }.padding(vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(stringResource(Res.string.reminder_time), Modifier.weight(1f))
+                Text(formatClock(state.minutesOfDay), style = MaterialTheme.typography.titleLarge)
+            }
+        }
+    }
+    if (picking) {
+        TimePickerDialog(
+            initialMinutes = state.minutesOfDay,
+            onConfirm = { picking = false; onTimeSelected(it) },
+            onDismiss = { picking = false },
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TimePickerDialog(initialMinutes: Int, onConfirm: (Int) -> Unit, onDismiss: () -> Unit) {
+    val pickerState = rememberTimePickerState(initialMinutes / 60, initialMinutes % 60, is24Hour = true)
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(Res.string.reminder_pick_time)) },
+        text = { TimePicker(state = pickerState) },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(pickerState.hour * 60 + pickerState.minute) }) {
+                Text(stringResource(Res.string.accept))
+            }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.cancel)) } },
+    )
+}
+
+private fun formatClock(minutesOfDay: Int): String =
+    "${(minutesOfDay / 60).toString().padStart(2, '0')}:${(minutesOfDay % 60).toString().padStart(2, '0')}"

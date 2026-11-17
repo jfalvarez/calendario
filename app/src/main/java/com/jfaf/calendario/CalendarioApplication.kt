@@ -8,6 +8,7 @@ import com.jfaf.calendario.data.sync.SyncEngine
 import com.jfaf.calendario.di.appModules
 import com.jfaf.calendario.presentation.update.AppForegroundEvents
 import com.jfaf.calendario.widget.ShiftWidgetUpdater
+import com.jfaf.calendario.reminder.ReminderUpdater
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.startKoin
 
@@ -21,12 +22,15 @@ class CalendarioApplication : Application() {
         val sync = koin.get<SyncEngine>()
         val foreground = koin.get<AppForegroundEvents>()
         koin.get<ShiftWidgetUpdater>().start()
+        val reminders = koin.get<ReminderUpdater>()
+        reminders.start()
         // Se activa al iniciar sesión y se detiene al cerrarla.
         sync.start()
         // Cada vez que la app pasa a primer plano (no a cada pantalla): sincroniza si hace tiempo que no se hacía.
         ProcessLifecycleOwner.get().lifecycle.addObserver(LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_START) {
                 sync.requestSyncIfStale()
+                reminders.start() // reinicia la ventana de fechas observada (parte de hoy)
                 foreground.notifyForeground()
             }
         })
