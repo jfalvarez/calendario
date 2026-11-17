@@ -11,8 +11,11 @@ import com.jfaf.calendario.data.prefs.createPreferencesDataStore
 import com.jfaf.calendario.data.remote.AppPlatform
 import com.jfaf.calendario.data.remote.SupabaseConfig
 import com.jfaf.calendario.domain.repository.AppVersionProvider
+import com.jfaf.calendario.presentation.update.UpdateLauncher
 import org.koin.dsl.module
 import java.io.File
+import java.awt.Desktop
+import java.net.URI
 import java.util.Properties
 
 /** Carpeta de datos del usuario: `%APPDATA%\Calendario` en Windows, `~/.local/share/calendario` en el resto. */
@@ -52,4 +55,11 @@ fun desktopModule(dataDir: File = appDataDir()) = module {
     single { loadSupabaseConfig() }
     single { AppPlatform("desktop") }
     single<AppVersionProvider> { loadAppVersion() }
+    // Sin autoactualización: abre la página de descarga que fije la política (`store_url`).
+    single<UpdateLauncher> {
+        UpdateLauncher { policy ->
+            val url = policy.storeUrl ?: return@UpdateLauncher
+            runCatching { if (Desktop.isDesktopSupported()) Desktop.getDesktop().browse(URI(url)) }
+        }
+    }
 }

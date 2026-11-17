@@ -4,6 +4,8 @@ import com.jfaf.calendario.domain.model.AppVersionPolicy
 import com.jfaf.calendario.domain.model.UpdateStatus
 import com.jfaf.calendario.domain.repository.AppConfigRepository
 import com.jfaf.calendario.domain.repository.AppVersionProvider
+import com.jfaf.calendario.domain.repository.SettingsRepository
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.withTimeoutOrNull
 
@@ -38,4 +40,13 @@ class CheckForUpdateUseCase(
     companion object {
         const val DEFAULT_TIMEOUT_MILLIS = 5_000L
     }
+}
+
+class ObserveDismissedUpdateUseCase(private val settings: SettingsRepository) {
+    operator fun invoke(): Flow<Int> = settings.observeDismissedRecommendedVersion()
+}
+
+/** Recuerda que el usuario descartó el aviso de esta versión recomendada; no vuelve a salir hasta que el servidor la suba. */
+class DismissRecommendedUpdateUseCase(private val settings: SettingsRepository) {
+    suspend operator fun invoke(recommendedVersionCode: Int) = settings.setDismissedRecommendedVersion(recommendedVersionCode)
 }

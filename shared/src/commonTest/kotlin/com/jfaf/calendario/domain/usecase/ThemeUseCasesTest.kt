@@ -18,6 +18,8 @@ class ThemeUseCasesTest {
         override suspend fun setThemeMode(mode: ThemeMode) { this.mode.value = mode }
         override fun observeAppStyle(): Flow<AppStyle> = style
         override suspend fun setAppStyle(style: AppStyle) { this.style.value = style }
+        override fun observeDismissedRecommendedVersion(): Flow<Int> = MutableStateFlow(0)
+        override suspend fun setDismissedRecommendedVersion(versionCode: Int) {}
     }
 
     @Test

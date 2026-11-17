@@ -6,6 +6,7 @@ import androidx.compose.ui.window.application
 import com.jfaf.calendario.data.sync.SyncEngine
 import com.jfaf.calendario.di.appModules
 import com.jfaf.calendario.presentation.App
+import com.jfaf.calendario.presentation.update.AppForegroundEvents
 import org.koin.core.context.startKoin
 import java.awt.event.WindowAdapter
 import java.awt.event.WindowEvent
@@ -13,6 +14,7 @@ import java.awt.event.WindowEvent
 fun main() {
     val koin = startKoin { modules(appModules + desktopModule()) }.koin
     val sync = koin.get<SyncEngine>()
+    val foreground = koin.get<AppForegroundEvents>()
     // Se activa al iniciar sesión y se detiene al cerrarla.
     sync.start()
     application {
@@ -20,8 +22,13 @@ fun main() {
             // Al recuperar el foco o restaurar la ventana: sincroniza si hace tiempo que no se hacía.
             DisposableEffect(window) {
                 val listener = object : WindowAdapter() {
-                    override fun windowGainedFocus(e: WindowEvent?) = sync.requestSyncIfStale()
-                    override fun windowDeiconified(e: WindowEvent?) = sync.requestSyncIfStale()
+                    override fun windowGainedFocus(e: WindowEvent?) = onForeground()
+                    override fun windowDeiconified(e: WindowEvent?) = onForeground()
+
+                    private fun onForeground() {
+                        sync.requestSyncIfStale()
+                        foreground.notifyForeground()
+                    }
                 }
                 window.addWindowFocusListener(listener)
                 window.addWindowListener(listener)

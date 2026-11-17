@@ -10,4 +10,8 @@ interface SettingsRepository {
     suspend fun setThemeMode(mode: ThemeMode)
     fun observeAppStyle(): Flow<AppStyle>
     suspend fun setAppStyle(style: AppStyle)
+
+    /** Mayor `recommended_version_code` cuyo aviso descartó el usuario (0 si ninguno). */
+    fun observeDismissedRecommendedVersion(): Flow<Int>
+    suspend fun setDismissedRecommendedVersion(versionCode: Int)
 }
