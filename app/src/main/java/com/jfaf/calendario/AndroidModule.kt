@@ -10,6 +10,7 @@ import com.jfaf.calendario.data.prefs.USER_PREFERENCES_FILE
 import com.jfaf.calendario.data.prefs.createPreferencesDataStore
 import com.jfaf.calendario.data.remote.AppPlatform
 import com.jfaf.calendario.data.remote.SupabaseConfig
+import com.jfaf.calendario.domain.repository.AppVersionProvider
 import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
 
@@ -24,4 +25,10 @@ val androidModule = module {
     // La URL y la clave pública salen de local.properties en la compilación (ver app/build.gradle.kts).
     single { SupabaseConfig(BuildConfig.SUPABASE_URL, BuildConfig.SUPABASE_ANON_KEY) }
     single { AppPlatform("android") }
+    single<AppVersionProvider> {
+        object : AppVersionProvider {
+            override val versionCode = BuildConfig.VERSION_CODE
+            override val versionName = BuildConfig.VERSION_NAME
+        }
+    }
 }

@@ -19,7 +19,7 @@ android {
         applicationId = "com.jfaf.calendario"
         minSdk = 29
         targetSdk = 36
-        versionCode = 1
+        versionCode = providers.gradleProperty("app.versionCode").get().toInt()
         versionName = "0.1.0"
         buildConfigField("String", "SUPABASE_URL", "\"${localProps.getProperty("supabase.url", "")}\"")
         buildConfigField("String", "SUPABASE_ANON_KEY", "\"${localProps.getProperty("supabase.anonKey", "")}\"")
