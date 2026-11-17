@@ -44,6 +44,20 @@ compose.desktop {
     }
 }
 
+// Escritorio: empaqueta el `versionCode` común (gradle.properties) para compararlo con app_config en Supabase.
+val appVersionCode = providers.gradleProperty("app.versionCode").get()
+val appVersionName = "1.0.0" // mantener igual que packageVersion (arriba)
+val generateAppVersion by tasks.registering {
+    val outDir = layout.buildDirectory.dir("generated/appversion")
+    inputs.property("versionCode", appVersionCode)
+    inputs.property("versionName", appVersionName)
+    outputs.dir(outDir)
+    doLast {
+        val file = File(outDir.get().asFile, "app-version.properties").apply { parentFile.mkdirs() }
+        file.writeText("version.code=$appVersionCode\nversion.name=$appVersionName\n")
+    }
+}
+
 // Escritorio: lee la configuración de Supabase de local.properties y la empaqueta como recurso.
 val generateSupabaseConfig by tasks.registering {
     val outDir = layout.buildDirectory.dir("generated/supabase")
@@ -59,4 +73,4 @@ val generateSupabaseConfig by tasks.registering {
         )
     }
 }
-tasks.processResources { from(generateSupabaseConfig) }
+tasks.processResources { from(generateSupabaseConfig, generateAppVersion) }

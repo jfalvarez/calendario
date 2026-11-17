@@ -19,6 +19,7 @@ koin = "4.2.2"
 composeMultiplatform = "1.12.2"
 composeMaterial3 = "1.9.0"
 composeIcons = "1.7.3"
+playAppUpdate = "2.1.0"
 
 [libraries]
 androidx-lifecycle-process = { group = "androidx.lifecycle", name = "lifecycle-process", version.ref = "lifecycle" }
@@ -45,6 +46,7 @@ compose-mp-ui = { module = "org.jetbrains.compose.ui:ui", version.ref = "compose
 compose-mp-foundation = { module = "org.jetbrains.compose.foundation:foundation", version.ref = "composeMultiplatform" }
 compose-mp-material3 = { module = "org.jetbrains.compose.material3:material3", version.ref = "composeMaterial3" }
 compose-mp-icons-extended = { module = "org.jetbrains.compose.material:material-icons-extended", version.ref = "composeIcons" }
+play-app-update = { module = "com.google.android.play:app-update", version.ref = "playAppUpdate" }
 koin-core = { module = "io.insert-koin:koin-core", version.ref = "koin" }
 koin-android = { module = "io.insert-koin:koin-android", version.ref = "koin" }
 koin-compose-viewmodel = { module = "io.insert-koin:koin-compose-viewmodel", version.ref = "koin" }

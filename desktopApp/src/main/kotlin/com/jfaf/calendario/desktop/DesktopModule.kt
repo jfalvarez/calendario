@@ -8,9 +8,14 @@ import com.jfaf.calendario.data.local.CalendarDatabase
 import com.jfaf.calendario.data.local.buildCalendarDatabase
 import com.jfaf.calendario.data.prefs.USER_PREFERENCES_FILE
 import com.jfaf.calendario.data.prefs.createPreferencesDataStore
+import com.jfaf.calendario.data.remote.AppPlatform
 import com.jfaf.calendario.data.remote.SupabaseConfig
+import com.jfaf.calendario.domain.repository.AppVersionProvider
+import com.jfaf.calendario.presentation.update.UpdateLauncher
 import org.koin.dsl.module
 import java.io.File
+import java.awt.Desktop
+import java.net.URI
 import java.util.Properties
 
 /** Carpeta de datos del usuario: `%APPDATA%\Calendario` en Windows, `~/.local/share/calendario` en el resto. */
@@ -28,6 +33,16 @@ fun loadSupabaseConfig(): SupabaseConfig {
     return SupabaseConfig(props.getProperty("supabase.url", ""), props.getProperty("supabase.anonKey", ""))
 }
 
+/** `app-version.properties` lo genera la compilación a partir de `app.versionCode` (ver desktopApp/build.gradle.kts). */
+fun loadAppVersion(): AppVersionProvider {
+    val props = Properties()
+    object {}.javaClass.classLoader.getResourceAsStream("app-version.properties")?.use { props.load(it) }
+    return object : AppVersionProvider {
+        override val versionCode = props.getProperty("version.code")?.toIntOrNull() ?: 0
+        override val versionName = props.getProperty("version.name", "")
+    }
+}
+
 fun desktopModule(dataDir: File = appDataDir()) = module {
     single<DataStore<Preferences>> {
         createPreferencesDataStore(File(dataDir, "datastore/$USER_PREFERENCES_FILE").absolutePath)
@@ -38,4 +53,13 @@ fun desktopModule(dataDir: File = appDataDir()) = module {
         )
     }
     single { loadSupabaseConfig() }
+    single { AppPlatform("desktop") }
+    single<AppVersionProvider> { loadAppVersion() }
+    // Sin autoactualización: abre la página de descarga que fije la política (`store_url`).
+    single<UpdateLauncher> {
+        UpdateLauncher { policy ->
+            val url = policy.storeUrl ?: return@UpdateLauncher
+            runCatching { if (Desktop.isDesktopSupported()) Desktop.getDesktop().browse(URI(url)) }
+        }
+    }
 }

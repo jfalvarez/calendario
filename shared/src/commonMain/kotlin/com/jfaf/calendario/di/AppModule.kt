@@ -2,6 +2,8 @@ package com.jfaf.calendario.di
 
 import com.jfaf.calendario.data.local.CalendarDatabase
 import com.jfaf.calendario.data.remote.RemoteDataSource
+import com.jfaf.calendario.data.remote.SupabaseAppConfigRepository
+import com.jfaf.calendario.domain.repository.AppConfigRepository
 import com.jfaf.calendario.data.remote.SupabaseAuthRepository
 import com.jfaf.calendario.data.remote.SupabaseConfig
 import com.jfaf.calendario.data.remote.SupabaseRemoteDataSource
@@ -42,6 +44,11 @@ import com.jfaf.calendario.domain.usecase.ToggleLocalHolidaysUseCase
 import com.jfaf.calendario.data.repository.RoomLocalHolidayRepository
 import com.jfaf.calendario.domain.repository.LocalHolidayRepository
 import com.jfaf.calendario.domain.usecase.CopyDaysUseCase
+import com.jfaf.calendario.domain.usecase.CheckForUpdateUseCase
+import com.jfaf.calendario.domain.usecase.DismissRecommendedUpdateUseCase
+import com.jfaf.calendario.domain.usecase.ObserveDismissedUpdateUseCase
+import com.jfaf.calendario.presentation.update.AppForegroundEvents
+import com.jfaf.calendario.presentation.update.UpdateViewModel
 import com.jfaf.calendario.domain.usecase.PasteDaysUseCase
 import com.jfaf.calendario.domain.usecase.RepeatDaysUseCase
 import com.jfaf.calendario.domain.usecase.DeleteShiftUseCase
@@ -57,10 +64,11 @@ import com.jfaf.calendario.domain.usecase.ObserveStatsUseCase
 import com.jfaf.calendario.presentation.stats.StatsViewModel
 import com.jfaf.calendario.domain.usecase.PaintDayUseCase
 import com.jfaf.calendario.presentation.calendar.CalendarViewModel
+import org.koin.core.module.dsl.viewModel
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 
-/** `CalendarDatabase`, `DataStore<Preferences>` y `SupabaseConfig` los aporta cada plataforma. */
+/** `CalendarDatabase`, `DataStore<Preferences>` y `SupabaseConfig` y `AppPlatform` los aporta cada plataforma. */
 val dataModule = module {
     single { get<CalendarDatabase>().shiftDao() }
     single { get<CalendarDatabase>().shiftAssignmentDao() }
@@ -92,9 +100,11 @@ val dataModule = module {
     }
     single<AuthRepository> { SupabaseAuthRepository(get()) }
     single<RemoteDataSource> { SupabaseRemoteDataSource(get()) }
+    single<AppConfigRepository> { SupabaseAppConfigRepository(get(), get()) }
     single { SyncEngine(get(), get(), get(), get(), CoroutineScope(SupervisorJob() + Dispatchers.Default)) }
     single<SyncRepository> { get<SyncEngine>() }
     single<SettingsRepository> { DataStoreSettingsRepository(get()) }
+    single { AppForegroundEvents() }
 }
 
 val domainModule = module {
@@ -121,6 +131,9 @@ val domainModule = module {
     factory { SaveShiftUseCase(get(), get()) }
     factory { DeleteShiftUseCase(get()) }
     factory { ReorderShiftsUseCase(get()) }
+    factory { CheckForUpdateUseCase(get(), get()) }
+    factory { ObserveDismissedUpdateUseCase(get()) }
+    factory { DismissRecommendedUpdateUseCase(get()) }
 }
 
 val presentationModule = module {
@@ -129,6 +142,7 @@ val presentationModule = module {
     viewModelOf(::SettingsViewModel)
     viewModelOf(::AccountViewModel)
     viewModelOf(::StatsViewModel)
+    viewModel { UpdateViewModel(get(), get(), get(), get<AppForegroundEvents>().events) }
 }
 
 val appModules = listOf(dataModule, domainModule, presentationModule)

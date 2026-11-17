@@ -130,4 +130,11 @@
     <string name="sync_status_synced">Sincronizado</string>
     <string name="sync_status_offline">Sin conexión</string>
     <string name="sync_status_error">Error al sincronizar</string>
+
+    <string name="update_required_title">Actualización necesaria</string>
+    <string name="update_required_message">Esta versión de Calendario ya no es compatible. Actualiza para seguir usándola.</string>
+    <string name="update_recommended_title">Nueva versión disponible</string>
+    <string name="update_recommended_message">Hay una versión nueva de Calendario con mejoras y correcciones.</string>
+    <string name="update_now">Actualizar</string>
+    <string name="update_later">Más tarde</string>
 </resources>
