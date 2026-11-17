@@ -25,7 +25,7 @@ class RoomLocalHolidayRepository(private val dao: LocalHolidayDao) : LocalHolida
             val alive = current != null && current.deletedAt == null
             when {
                 holiday && !alive -> LocalHolidayEntity(key, now, null, true)
-                !holiday && alive -> current!!.copy(updatedAt = now, deletedAt = now, dirty = true)
+                !holiday && current != null && alive -> current.copy(updatedAt = now, deletedAt = now, dirty = true)
                 else -> null
             }
         }

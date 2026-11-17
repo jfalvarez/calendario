@@ -8,6 +8,7 @@ import com.jfaf.calendario.data.remote.RemoteAssignment
 import com.jfaf.calendario.data.remote.RemoteDataSource
 import com.jfaf.calendario.data.remote.RemoteLocalHoliday
 import com.jfaf.calendario.data.remote.RemoteShift
+import com.jfaf.calendario.data.repository.RoomLocalHolidayRepository
 import com.jfaf.calendario.data.repository.RoomShiftAssignmentRepository
 import com.jfaf.calendario.data.repository.RoomShiftRepository
 import com.jfaf.calendario.data.sync.SyncEngine
@@ -92,6 +93,7 @@ private class Device(remote: FakeRemote) {
     val db = buildCalendarDatabase(Room.databaseBuilder<CalendarDatabase>(dbFile.absolutePath))
     val shifts = RoomShiftRepository(db.shiftDao())
     val assignments = RoomShiftAssignmentRepository(db.shiftAssignmentDao())
+    val holidays = RoomLocalHolidayRepository(db.localHolidayDao())
     val engine = SyncEngine(
         db, remote,
         object : AuthRepository {
@@ -162,6 +164,17 @@ class SyncEngineTest {
         a.assignments.setShiftIds(day, emptyList())
         a.engine.syncNow("u1"); b.engine.syncNow("u1")
         assertEquals(emptyList(), b.ids())
+    }
+
+    @Test
+    fun localHolidaysAndTheirRemovalPropagate() = runTest {
+        a.holidays.setHoliday(setOf(day), true)
+        a.engine.syncNow("u1"); b.engine.syncNow("u1")
+        assertEquals(setOf(day), b.holidays.getHolidays(setOf(day)))
+        pause()
+        a.holidays.setHoliday(setOf(day), false)
+        a.engine.syncNow("u1"); b.engine.syncNow("u1")
+        assertTrue(b.holidays.getHolidays(setOf(day)).isEmpty())
     }
 
     @Test

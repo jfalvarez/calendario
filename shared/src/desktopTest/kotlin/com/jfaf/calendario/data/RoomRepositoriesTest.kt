@@ -3,6 +3,7 @@ package com.jfaf.calendario.data
 import androidx.room.Room
 import com.jfaf.calendario.data.local.CalendarDatabase
 import com.jfaf.calendario.data.local.buildCalendarDatabase
+import com.jfaf.calendario.data.repository.RoomLocalHolidayRepository
 import com.jfaf.calendario.data.repository.RoomShiftAssignmentRepository
 import com.jfaf.calendario.data.repository.RoomShiftRepository
 import com.jfaf.calendario.domain.model.Shift
@@ -20,6 +21,7 @@ class RoomRepositoriesTest {
     private val db = buildCalendarDatabase(Room.databaseBuilder<CalendarDatabase>(file.absolutePath))
     private val shifts = RoomShiftRepository(db.shiftDao())
     private val assignments = RoomShiftAssignmentRepository(db.shiftAssignmentDao())
+    private val holidays = RoomLocalHolidayRepository(db.localHolidayDao())
     private val day = LocalDate(2025, 11, 12)
 
     @AfterTest
@@ -87,6 +89,28 @@ class RoomRepositoriesTest {
         )
         assignments.setAssignments(mapOf(day to emptyList(), d2 to listOf("default-night")))
         assertEquals(mapOf(d2 to listOf("default-night")), assignments.getAssignments(day, d2))
+    }
+
+    @Test
+    fun localHolidayTogglesOnAndOffWithTombstone() = runTest {
+        holidays.setHoliday(setOf(day), true)
+        assertEquals(setOf(day), holidays.getHolidays(setOf(day)))
+        assertEquals(setOf(day), holidays.observeHolidays(day, day).first())
+        holidays.setHoliday(setOf(day), false)
+        assertTrue(holidays.getHolidays(setOf(day)).isEmpty())
+        assertTrue(holidays.observeHolidays(day, day).first().isEmpty())
+        // el borrado queda como tombstone pendiente de sincronizar
+        val row = db.localHolidayDao().getByDates(listOf(day.toString())).single()
+        assertTrue(row.deletedAt != null && row.dirty)
+    }
+
+    @Test
+    fun localHolidayCanBeMarkedAgainAfterRemoval() = runTest {
+        holidays.setHoliday(setOf(day), true)
+        holidays.setHoliday(setOf(day), false)
+        holidays.setHoliday(setOf(day), true)
+        assertEquals(setOf(day), holidays.getHolidays(setOf(day)))
+        assertEquals(1, db.localHolidayDao().getByDates(listOf(day.toString())).size)
     }
 
 }
