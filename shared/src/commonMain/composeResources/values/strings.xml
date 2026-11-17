@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Calendario</string>
+    <string name="app_name">NurseOClock</string>
     <string name="today">Hoy</string>
     <string name="previous_month">Mes anterior</string>
     <string name="next_month">Mes siguiente</string>
@@ -132,9 +132,9 @@
     <string name="sync_status_error">Error al sincronizar</string>
 
     <string name="update_required_title">Actualización necesaria</string>
-    <string name="update_required_message">Esta versión de Calendario ya no es compatible. Actualiza para seguir usándola.</string>
+    <string name="update_required_message">Esta versión de NurseOClock ya no es compatible. Actualiza para seguir usándola.</string>
     <string name="update_recommended_title">Nueva versión disponible</string>
-    <string name="update_recommended_message">Hay una versión nueva de Calendario con mejoras y correcciones.</string>
+    <string name="update_recommended_message">Hay una versión nueva de NurseOClock con mejoras y correcciones.</string>
     <string name="update_now">Actualizar</string>
     <string name="update_later">Más tarde</string>
 </resources>

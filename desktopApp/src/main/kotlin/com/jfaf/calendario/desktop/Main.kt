@@ -1,6 +1,10 @@
 package com.jfaf.calendario.desktop
 
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.painter.BitmapPainter
+import androidx.compose.ui.res.loadImageBitmap
+import androidx.compose.ui.res.useResource
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import com.jfaf.calendario.data.sync.SyncEngine
@@ -18,7 +22,8 @@ fun main() {
     // Se activa al iniciar sesión y se detiene al cerrarla.
     sync.start()
     application {
-        Window(onCloseRequest = ::exitApplication, title = "Calendario") {
+        val appIcon = remember { BitmapPainter(useResource("icon.png", ::loadImageBitmap)) }
+        Window(onCloseRequest = ::exitApplication, title = "NurseOClock", icon = appIcon) {
             // Al recuperar el foco o restaurar la ventana: sincroniza si hace tiempo que no se hacía.
             DisposableEffect(window) {
                 val listener = object : WindowAdapter() {

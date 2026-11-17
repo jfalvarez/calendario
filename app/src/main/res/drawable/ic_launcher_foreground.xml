@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- NurseOClock: calendario con un corazón sostenido por dos manos. Fuente: design/iconos/icono-B2-manos.svg.
+     Lienzo de 512 unidades sobre 108dp; el contenido se escala 1.1 y queda dentro de la zona segura (66dp). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="512"
+    android:viewportHeight="512">
+  <group android:scaleX="1.1" android:scaleY="1.1" android:translateX="-25.6" android:translateY="-25.6">
+    <path android:fillColor="#FFFFFF"
+        android:pathData="M166,150H346A30,30 0 0 1 376,180V352A30,30 0 0 1 346,382H166A30,30 0 0 1 136,352V180A30,30 0 0 1 166,150Z"/>
+    <path android:fillColor="#1A3688"
+        android:pathData="M166,150H346A30,30 0 0 1 376,180V214H136V180A30,30 0 0 1 166,150Z"/>
+    <path android:fillColor="#FFFFFF" android:strokeColor="#1A3688" android:strokeWidth="6"
+        android:pathData="M199,125A10,10 0 0 1 209,135V163A10,10 0 0 1 189,163V135A10,10 0 0 1 199,125Z"/>
+    <path android:fillColor="#FFFFFF" android:strokeColor="#1A3688" android:strokeWidth="6"
+        android:pathData="M313,125A10,10 0 0 1 323,135V163A10,10 0 0 1 303,163V135A10,10 0 0 1 313,125Z"/>
+    <path android:fillColor="#F25C6E"
+        android:pathData="M256,334C196,292 188,252 212,234C232,220 250,230 256,246C262,230 280,220 300,234C324,252 316,292 256,334Z"/>
+    <path android:fillColor="#1A3688" android:strokeColor="#1A3688" android:strokeWidth="5" android:strokeLineJoin="round" android:strokeLineCap="round"
+        android:pathData="M160,290C158,346 204,374 252,374L252,350C222,348 198,330 192,300Z"/>
+    <path android:fillColor="#1A3688" android:strokeColor="#1A3688" android:strokeWidth="5" android:strokeLineJoin="round" android:strokeLineCap="round"
+        android:pathData="M352,290C354,346 308,374 260,374L260,350C290,348 314,330 320,300Z"/>
+    <group android:rotation="-18" android:pivotX="196" android:pivotY="300">
+      <path android:fillColor="#1A3688" android:strokeColor="#1A3688" android:strokeWidth="5"
+          android:pathData="M183,300A13,22 0 1 0 209,300A13,22 0 1 0 183,300Z"/>
+    </group>
+    <group android:rotation="18" android:pivotX="316" android:pivotY="300">
+      <path android:fillColor="#1A3688" android:strokeColor="#1A3688" android:strokeWidth="5"
+          android:pathData="M303,300A13,22 0 1 0 329,300A13,22 0 1 0 303,300Z"/>
+    </group>
+  </group>
+</vector>

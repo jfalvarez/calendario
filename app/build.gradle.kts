@@ -65,6 +65,7 @@ android {
 dependencies {
     implementation(project(":shared"))
     implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.core.splashscreen) // pantalla de arranque con el icono (Android 12+ nativa, antes emulada)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.process)
     implementation(libs.koin.android)
