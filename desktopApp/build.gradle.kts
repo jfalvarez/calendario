@@ -29,12 +29,16 @@ compose.desktop {
 
         nativeDistributions {
             targetFormats(TargetFormat.Msi, TargetFormat.Deb, TargetFormat.Dmg)
-            packageName = "Calendario"
+            packageName = "NurseOClock"
             packageVersion = "1.0.0"
             description = "Calendario de turnos"
             vendor = "jfaf"
+            linux {
+                iconFile.set(project.file("src/main/resources/icon.png"))
+            }
             windows {
-                menuGroup = "Calendario"
+                menuGroup = "NurseOClock"
+                iconFile.set(project.file("icons/icon.ico"))
                 shortcut = true
                 perUserInstall = true
                 // Identifica la app en las actualizaciones del MSI: no cambiar nunca
