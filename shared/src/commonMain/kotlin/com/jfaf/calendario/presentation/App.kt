@@ -11,6 +11,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.toRoute
+import com.jfaf.calendario.presentation.social.SharedScheduleScreen
+import kotlinx.serialization.Serializable
 import androidx.navigation.compose.rememberNavController
 import com.jfaf.calendario.domain.model.AppStyle
 import com.jfaf.calendario.domain.model.ThemeMode
@@ -30,6 +33,10 @@ private object Routes {
     const val STATS = "stats"
     const val DEBTS = "debts"
 }
+
+/** Calendario de solo lectura de un compañero (ruta con argumentos tipados). */
+@Serializable
+data class SharedRoute(val ownerId: String, val alias: String)
 
 /**
  * Raíz común de la UI (Android y escritorio): tema y navegación.
@@ -63,7 +70,20 @@ fun App(onDarkThemeChanged: (Boolean) -> Unit = {}) {
                         )
                     }
                     composable(Routes.SHIFTS) { ShiftsScreen(onBack = { navController.popBackStack() }) }
-                    composable(Routes.SETTINGS) { SettingsScreen(onBack = { navController.popBackStack() }) }
+                    composable(Routes.SETTINGS) {
+                        SettingsScreen(
+                            onBack = { navController.popBackStack() },
+                            onOpenShared = { ownerId, alias -> navController.navigate(SharedRoute(ownerId, alias)) },
+                        )
+                    }
+                    composable<SharedRoute> { entry ->
+                        val route = entry.toRoute<SharedRoute>()
+                        SharedScheduleScreen(
+                            ownerId = route.ownerId,
+                            alias = route.alias,
+                            onBack = { navController.popBackStack() },
+                        )
+                    }
                     composable(Routes.STATS) { StatsScreen(onBack = { navController.popBackStack() }) }
                     composable(Routes.DEBTS) { DebtsScreen(onBack = { navController.popBackStack() }) }
                 }

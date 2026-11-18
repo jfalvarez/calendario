@@ -1,10 +1,12 @@
 package com.jfaf.calendario.data.remote
 
+import com.jfaf.calendario.domain.model.CalendarMonth
 import com.jfaf.calendario.domain.model.LinkDirection
 import com.jfaf.calendario.domain.model.LinkRequestResult
 import com.jfaf.calendario.domain.model.LinkStatus
 import com.jfaf.calendario.domain.model.LinkSummary
 import com.jfaf.calendario.domain.model.PendingRequest
+import com.jfaf.calendario.domain.model.SharedAssignment
 import com.jfaf.calendario.domain.repository.SocialError
 import com.jfaf.calendario.domain.repository.SocialException
 import com.jfaf.calendario.domain.repository.SocialRepository
@@ -14,6 +16,7 @@ import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.rpc
 import kotlinx.coroutines.CancellationException
+import kotlinx.datetime.LocalDate
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.buildJsonObject
@@ -38,6 +41,20 @@ internal data class RemoteLink(
     @SerialName("other_id") val otherId: String,
     @SerialName("other_alias") val otherAlias: String? = null,
     val status: String,
+)
+
+/** Fila de `public.get_shared_schedule()`. */
+@Serializable
+internal data class RemoteSharedAssignment(
+    @SerialName("assignment_date") val assignmentDate: String,
+    val slot: Int,
+    @SerialName("shift_id") val shiftId: String? = null,
+    @SerialName("shift_name") val shiftName: String,
+    val abbreviation: String,
+    @SerialName("color_argb") val colorArgb: Long,
+    @SerialName("start_minutes") val startMinutes: Int? = null,
+    @SerialName("end_minutes") val endMinutes: Int? = null,
+    @SerialName("break_minutes") val breakMinutes: Int = 0,
 )
 
 /** Implementación contra Supabase: funciones RPC de `supabase/social.sql`. */
@@ -91,6 +108,28 @@ class SupabaseSocialRepository(private val client: SupabaseClient) : SocialRepos
             buildJsonObject { put("p_link", linkId); put("p_status", status) },
         )
     }
+
+    override suspend fun sharedSchedule(ownerId: String, month: CalendarMonth): Result<List<SharedAssignment>> = call {
+        client.postgrest.rpc(
+            "get_shared_schedule",
+            buildJsonObject {
+                put("p_owner", ownerId)
+                put("p_from", month.firstDay.toString())
+                put("p_to", LocalDate.fromEpochDays(month.next.firstDay.toEpochDays() - 1).toString())
+            },
+        ).decodeList<RemoteSharedAssignment>().map { it.toDomain() }
+    }
+
+    private fun RemoteSharedAssignment.toDomain() = SharedAssignment(
+        date = LocalDate.parse(assignmentDate),
+        slot = slot,
+        shiftName = shiftName,
+        abbreviation = abbreviation,
+        colorArgb = colorArgb,
+        startMinutes = startMinutes,
+        endMinutes = endMinutes,
+        breakMinutes = breakMinutes,
+    )
 
     private fun RemoteLink.toDomain() = LinkSummary(
         linkId = linkId,

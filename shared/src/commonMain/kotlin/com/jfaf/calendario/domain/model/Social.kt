@@ -1,5 +1,7 @@
 package com.jfaf.calendario.domain.model
 
+import kotlinx.datetime.LocalDate
+
 /** Longitud y formato del alias público (ver `supabase/social.sql`). */
 const val ALIAS_MIN_LENGTH = 3
 const val ALIAS_MAX_LENGTH = 20
@@ -28,4 +30,16 @@ data class LinkSummary(
     val otherId: String,
     val otherAlias: String?,
     val status: LinkStatus,
+)
+
+/** Turno asignado en el calendario de un compañero (solo lectura). `slot` 0 o 1: primer o segundo turno del día. */
+data class SharedAssignment(
+    val date: LocalDate,
+    val slot: Int,
+    val shiftName: String,
+    val abbreviation: String,
+    val colorArgb: Long,
+    val startMinutes: Int?,
+    val endMinutes: Int?,
+    val breakMinutes: Int,
 )

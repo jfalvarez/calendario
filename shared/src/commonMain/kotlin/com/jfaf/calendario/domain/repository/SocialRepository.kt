@@ -1,8 +1,10 @@
 package com.jfaf.calendario.domain.repository
 
+import com.jfaf.calendario.domain.model.CalendarMonth
 import com.jfaf.calendario.domain.model.LinkRequestResult
 import com.jfaf.calendario.domain.model.LinkSummary
 import com.jfaf.calendario.domain.model.PendingRequest
+import com.jfaf.calendario.domain.model.SharedAssignment
 
 /** Errores de dominio de las operaciones sociales. `Unknown` cubre fallos no esperados. */
 enum class SocialError { AliasTaken, InvalidAlias, NotAuthenticated, InvalidTransition, Forbidden, LinkNotFound, Network, Unknown }
@@ -32,6 +34,9 @@ interface SocialRepository {
 
     /** Corta un vínculo: cancelar mi solicitud, dejar de ver a alguien, o dejar de compartir con alguien. */
     suspend fun revokeLink(linkId: String): Result<Unit>
+
+    /** Turnos asignados de un compañero con vínculo aceptado, en el mes indicado. */
+    suspend fun sharedSchedule(ownerId: String, month: CalendarMonth): Result<List<SharedAssignment>>
 
     /** Bloquea a quien me pidió un vínculo: corta el vínculo y evita nuevas solicitudes suyas. */
     suspend fun blockRequester(linkId: String): Result<Unit>

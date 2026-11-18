@@ -33,6 +33,7 @@ class SocialActions(
     val onReject: (String) -> Unit = {},
     val onBlock: (String) -> Unit = {},
     val onRevoke: (String) -> Unit = {},
+    val onOpenShared: (ownerId: String, alias: String) -> Unit = { _, _ -> },
 )
 
 /** Sección de Ajustes: mi alias, pedir un vínculo, solicitudes pendientes y vínculos actuales. */
@@ -108,9 +109,16 @@ fun SocialSection(state: SocialUiState, signedIn: Boolean, actions: SocialAction
                             style = MaterialTheme.typography.bodySmall,
                         )
                     }
-                    if (link.status == LinkStatus.Accepted || link.status == LinkStatus.Pending) {
-                        TextButton(onClick = { actions.onRevoke(link.linkId) }, enabled = !state.busy) {
-                            Text(stringResource(Res.string.social_revoke))
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        if (link.direction == LinkDirection.Outgoing && link.status == LinkStatus.Accepted) {
+                            TextButton(onClick = { actions.onOpenShared(link.otherId, link.otherAlias.orEmpty()) }) {
+                                Text(stringResource(Res.string.social_view_calendar))
+                            }
+                        }
+                        if (link.status == LinkStatus.Accepted || link.status == LinkStatus.Pending) {
+                            TextButton(onClick = { actions.onRevoke(link.linkId) }, enabled = !state.busy) {
+                                Text(stringResource(Res.string.social_revoke))
+                            }
                         }
                     }
                 }

@@ -84,6 +84,7 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun SettingsScreen(
     onBack: () -> Unit,
+    onOpenShared: (ownerId: String, alias: String) -> Unit = { _, _ -> },
     viewModel: SettingsViewModel = koinViewModel(),
     accountViewModel: AccountViewModel = koinViewModel(),
     socialViewModel: SocialViewModel = koinViewModel(),
@@ -113,7 +114,7 @@ fun SettingsScreen(
     val style by viewModel.appStyle.collectAsState()
     val reminder by viewModel.reminder.collectAsState()
     val social by socialViewModel.uiState.collectAsState()
-    val socialActions = remember(socialViewModel) {
+    val socialActions = remember(socialViewModel, onOpenShared) {
         SocialActions(
             onSaveAlias = socialViewModel::saveAlias,
             onRequestLink = socialViewModel::requestLink,
@@ -122,6 +123,7 @@ fun SettingsScreen(
             onReject = socialViewModel::reject,
             onBlock = socialViewModel::block,
             onRevoke = socialViewModel::revoke,
+            onOpenShared = onOpenShared,
         )
     }
     SettingsContent(

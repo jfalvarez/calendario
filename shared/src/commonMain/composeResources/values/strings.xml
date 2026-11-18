@@ -219,4 +219,8 @@
     <string name="social_accepted_status">Activo</string>
     <string name="social_revoke">Quitar</string>
     <string name="social_chip">Solicitudes: %1$d</string>
+    <string name="social_view_calendar">Ver turnos</string>
+    <string name="shared_title">Turnos de %1$s</string>
+    <string name="shared_empty">No tiene turnos asignados este mes.</string>
+    <string name="shared_error">No se pudieron cargar los turnos. Revisa la conexión.</string>
 </resources>
