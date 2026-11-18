@@ -130,7 +130,6 @@ fun SettingsScreen(
         mode ?: ThemeMode.System, style ?: AppStyle.Pop, onBack,
         viewModel::onThemeModeSelected, viewModel::onAppStyleSelected, account, accountActions,
         reminder, viewModel::onReminderEnabledChange, viewModel::onReminderTimeSelected,
-        viewModel.canSendTestReport, viewModel::onSendTestReport,
         social = social, socialActions = socialActions, signedIn = account.auth is AuthState.SignedIn,
     )
 }
@@ -148,8 +147,6 @@ fun SettingsContent(
     reminder: ReminderUiState = ReminderUiState(),
     onReminderEnabledChange: (Boolean) -> Unit = {},
     onReminderTimeSelected: (Int) -> Unit = {},
-    canSendTestReport: Boolean = false,
-    onSendTestReport: () -> Unit = {},
     social: SocialUiState = SocialUiState(),
     socialActions: SocialActions = SocialActions(),
     signedIn: Boolean = false,
@@ -184,7 +181,6 @@ fun SettingsContent(
             ThemeOption(Res.string.theme_light, ThemeMode.Light, themeMode, onThemeModeSelected)
             ThemeOption(Res.string.theme_dark, ThemeMode.Dark, themeMode, onThemeModeSelected)
 
-            if (canSendTestReport) DiagnosticsSection(onSendTestReport)
         }
     }
 }
@@ -314,14 +310,3 @@ private fun TimePickerDialog(initialMinutes: Int, onConfirm: (Int) -> Unit, onDi
 private fun formatClock(minutesOfDay: Int): String =
     "${(minutesOfDay / 60).toString().padStart(2, '0')}:${(minutesOfDay % 60).toString().padStart(2, '0')}"
 
-/** Sólo en compilaciones de prueba: manda un fallo de mentira para comprobar que los informes llegan. */
-@Composable
-private fun DiagnosticsSection(onSendTestReport: () -> Unit) {
-    var sent by remember { mutableStateOf(false) }
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(stringResource(Res.string.diagnostics_title), style = MaterialTheme.typography.titleMedium)
-        OutlinedButton(onClick = { onSendTestReport(); sent = true }) {
-            Text(stringResource(if (sent) Res.string.test_report_sent else Res.string.test_report_send))
-        }
-    }
-}
