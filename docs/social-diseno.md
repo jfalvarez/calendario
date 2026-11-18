@@ -132,3 +132,11 @@ Estado: **borrador**, sin desplegar. Archivos: [supabase/social_push.sql](../sup
 **Riesgos**
 - Sin la función desplegada, los disparadores no fallan: simplemente no llega nada.
 - Los avisos dependen de la red del móvil y de que el usuario no haya desactivado las notificaciones de la app.
+
+## Deuda técnica
+
+- **Base de datos de desarrollo separada.** La variante `dev` usa la misma base de Supabase que producción. Falta un segundo proyecto de Supabase con su URL y clave en `local.properties` para esa variante.
+- **Código muerto de diagnóstico.** `SettingsViewModel.canSendTestReport` y `onSendTestReport` ya no tienen interfaz; se pueden quitar.
+- **Pruebas sin escribir.** Falta ampliar `supabase/rls-test.ps1` para los casos de alias, solicitudes, bloqueos y propuestas de cambio.
+- **Propuestas de cambio sin probar de punta a punta.** Necesitan dos cuentas reales.
+- **Rotación del secreto de avisos.** Si `NOTIFY_SECRET` cambia, hay que actualizar también `push_config`, y no hay un procedimiento escrito.
