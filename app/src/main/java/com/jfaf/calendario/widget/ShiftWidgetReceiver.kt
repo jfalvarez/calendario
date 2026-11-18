@@ -16,9 +16,11 @@ class ShiftWidgetReceiver : GlanceAppWidgetReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
         super.onReceive(context, intent)
-        // A medianoche (o al cambiar la hora/zona) "mañana" pasa a ser "hoy": se vuelve a dibujar.
-        if (intent.action in DAY_CHANGE_ACTIONS) {
+        // A medianoche (o al cambiar la hora/zona/arrancar) "mañana" pasa a ser "hoy": se vuelve a dibujar y se
+        // programa la siguiente medianoche.
+        if (intent.action in REFRESH_ACTIONS) {
             GlobalContext.get().get<ShiftWidgetUpdater>().start() // la ventana hoy-mañana se desplaza un día
+            ShiftWidgetMidnight.schedule(context)
             val pending: BroadcastReceiver.PendingResult = goAsync()
             CoroutineScope(Dispatchers.Default).launch {
                 try {
@@ -31,10 +33,12 @@ class ShiftWidgetReceiver : GlanceAppWidgetReceiver() {
     }
 
     private companion object {
-        val DAY_CHANGE_ACTIONS = setOf(
+        val REFRESH_ACTIONS = setOf(
             Intent.ACTION_DATE_CHANGED,
             Intent.ACTION_TIME_CHANGED,
             Intent.ACTION_TIMEZONE_CHANGED,
+            Intent.ACTION_BOOT_COMPLETED,
+            ShiftWidgetMidnight.ACTION_MIDNIGHT,
         )
     }
 }

@@ -48,6 +48,7 @@ class ShiftWidget : GlanceAppWidget() {
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val koin = GlobalContext.get()
         val days = koin.get<ObserveUpcomingDaysUseCase>()(koin.get<TodayProvider>().today(), days = 2).first()
+        ShiftWidgetMidnight.schedule(context) // siguiente redibujado a medianoche, aunque no cambien datos
         provideContent { WidgetContent(context, days, withHours = LocalSize.current.width >= WIDE.width) }
     }
 
