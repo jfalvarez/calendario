@@ -31,7 +31,9 @@ function Call($method, $path, $token, $body = $null, $extra = @{}) {
         $resp = $_.Exception.Response
         if (-not $resp) { throw }
         $status = [int]$resp.StatusCode
-        $text = (New-Object IO.StreamReader($resp.GetResponseStream())).ReadToEnd()
+        # PowerShell 5.1 ya leyó el cuerpo del error y lo deja en ErrorDetails; releer el stream da vacío.
+        $text = if ($_.ErrorDetails -and $_.ErrorDetails.Message) { $_.ErrorDetails.Message }
+                else { (New-Object IO.StreamReader($resp.GetResponseStream())).ReadToEnd() }
     }
     $json = $null
     try { $json = $text | ConvertFrom-Json } catch { }
