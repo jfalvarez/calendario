@@ -22,5 +22,12 @@ internal fun RemoteAppConfig.toPolicy() = AppVersionPolicy(
     minVersionCode = minVersionCode,
     recommendedVersionCode = recommendedVersionCode,
     message = message?.takeIf { it.isNotBlank() },
-    storeUrl = storeUrl?.takeIf { it.isNotBlank() },
+    storeUrl = storeUrl?.trim()?.takeIf { isSafeStoreUrl(it) },
 )
+
+/** Sólo se abren enlaces https o market://: una fila manipulada de `app_config` no debe lanzar otros esquemas. */
+internal fun isSafeStoreUrl(url: String): Boolean {
+    val lower = url.lowercase()
+    return (lower.startsWith("https://") && lower.length > "https://".length) ||
+        (lower.startsWith("market://") && lower.length > "market://".length)
+}

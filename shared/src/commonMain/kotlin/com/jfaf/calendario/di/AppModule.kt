@@ -12,6 +12,7 @@ import com.jfaf.calendario.domain.repository.AuthRepository
 import com.jfaf.calendario.domain.repository.SyncRepository
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.Auth
+import io.github.jan.supabase.auth.SessionManager
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.serializer.KotlinXSerializer
@@ -97,6 +98,8 @@ val dataModule = module {
     single<IdGenerator> { UuidIdGenerator() }
     single<SupabaseClient> {
         val config = get<SupabaseConfig>()
+        // Almacén de sesión propio de la plataforma (escritorio); si no hay, el de supabase-kt por defecto.
+        val sessionStore = getOrNull<SessionManager>()
         // Sin configurar se usa un destino inválido: la app funciona en local y la sincronización falla sin avisar.
         createSupabaseClient(
             supabaseUrl = if (config.isConfigured) config.url else "https://not-configured.invalid",
@@ -111,7 +114,7 @@ val dataModule = module {
                     explicitNulls = true
                 },
             )
-            install(Auth)
+            install(Auth) { sessionStore?.let { sessionManager = it } }
             install(Postgrest)
         }
     }
