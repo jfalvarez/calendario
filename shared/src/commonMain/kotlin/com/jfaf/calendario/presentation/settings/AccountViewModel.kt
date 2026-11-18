@@ -14,6 +14,7 @@ import com.jfaf.calendario.domain.usecase.RequestSyncUseCase
 import com.jfaf.calendario.domain.usecase.SignInUseCase
 import com.jfaf.calendario.domain.usecase.SignOutUseCase
 import com.jfaf.calendario.domain.usecase.SignUpUseCase
+import com.jfaf.calendario.domain.usecase.PushRegistration
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -61,6 +62,7 @@ class AccountViewModel(
     private val requestPasswordReset: RequestPasswordResetUseCase,
     private val completePasswordReset: CompletePasswordResetUseCase,
     private val changePassword: ChangePasswordUseCase,
+    private val pushRegistration: PushRegistration,
 ) : ViewModel() {
     private data class Form(
         val mode: AccountMode = AccountMode.SignIn,
@@ -141,7 +143,11 @@ class AccountViewModel(
     }
 
     fun onSignOut() {
-        viewModelScope.launch { signOut() }
+        viewModelScope.launch {
+            // Antes de cerrar sesión: el aviso no debe llegar al siguiente usuario de este móvil.
+            pushRegistration.unregister()
+            signOut()
+        }
     }
 
     fun onSyncNow() = requestSync()

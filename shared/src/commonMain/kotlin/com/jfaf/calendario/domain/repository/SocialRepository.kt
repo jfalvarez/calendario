@@ -55,6 +55,12 @@ interface SocialRepository {
 
     suspend fun mySwaps(): Result<List<SwapProposal>>
 
+    /** Asocia el token de avisos de este dispositivo a mi cuenta. */
+    suspend fun registerPushToken(token: String): Result<Unit>
+
+    /** Quita el token de avisos de este dispositivo (al cerrar sesión). */
+    suspend fun unregisterPushToken(token: String): Result<Unit>
+
     /** Bloquea a quien me pidió un vínculo: corta el vínculo y evita nuevas solicitudes suyas. */
     suspend fun blockRequester(linkId: String): Result<Unit>
 }

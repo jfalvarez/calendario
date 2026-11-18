@@ -173,6 +173,14 @@ class SupabaseSocialRepository(private val client: SupabaseClient) : SocialRepos
         client.postgrest.rpc("list_my_swaps").decodeList<RemoteSwap>().map { it.toDomain() }
     }
 
+    override suspend fun registerPushToken(token: String): Result<Unit> = call {
+        client.postgrest.rpc("register_device_token", buildJsonObject { put("p_token", token); put("p_platform", "android") })
+    }
+
+    override suspend fun unregisterPushToken(token: String): Result<Unit> = call {
+        client.postgrest.rpc("unregister_device_token", buildJsonObject { put("p_token", token) })
+    }
+
     private fun RemoteSwap.toDomain() = SwapProposal(
         id = swapId,
         direction = if (direction == "outgoing") LinkDirection.Outgoing else LinkDirection.Incoming,
