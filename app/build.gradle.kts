@@ -19,14 +19,29 @@ android {
         applicationId = "com.jfaf.calendario"
         minSdk = 29
         targetSdk = 36
-        versionCode = 1
+        versionCode = providers.gradleProperty("app.versionCode").get().toInt()
         versionName = "0.1.0"
         buildConfigField("String", "SUPABASE_URL", "\"${localProps.getProperty("supabase.url", "")}\"")
         buildConfigField("String", "SUPABASE_ANON_KEY", "\"${localProps.getProperty("supabase.anonKey", "")}\"")
+        // DSN de Sentry (informes de fallos); vacío = desactivado. Se declara en local.properties como `sentry.dsn`.
+        buildConfigField("String", "SENTRY_DSN", "\"${localProps.getProperty("sentry.dsn", "")}\"")
+    }
+
+    // Clave de subida a Play (fuera de git): se declara en local.properties (ver Calendario-arquitectura/10-distribucion.md).
+    // Sin esas propiedades la release sale sin firmar y la compilación no falla.
+    val uploadStore = localProps.getProperty("release.storeFile")
+    if (uploadStore != null) {
+        signingConfigs.create("upload") {
+            storeFile = rootProject.file(uploadStore)
+            storePassword = localProps.getProperty("release.storePassword")
+            keyAlias = localProps.getProperty("release.keyAlias")
+            keyPassword = localProps.getProperty("release.keyPassword")
+        }
     }
 
     buildTypes {
         getByName("release") {
+            signingConfigs.findByName("upload")?.let { signingConfig = it }
             isMinifyEnabled = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
@@ -52,9 +67,13 @@ android {
 dependencies {
     implementation(project(":shared"))
     implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.core.splashscreen) // pantalla de arranque con el icono (Android 12+ nativa, antes emulada)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.process)
     implementation(libs.koin.android)
+    implementation(libs.play.app.update)
+    implementation(libs.sentry.android)
+    implementation(libs.androidx.glance.appwidget) // widget de pantalla de inicio (turnos de hoy y mañana)
 }
 
 kotlin {

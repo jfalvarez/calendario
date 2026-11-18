@@ -5,11 +5,17 @@ import com.jfaf.calendario.data.local.CalendarDatabase
 import com.jfaf.calendario.data.local.buildCalendarDatabase
 import com.jfaf.calendario.data.prefs.createPreferencesDataStore
 import com.jfaf.calendario.data.remote.RemoteAssignment
+import com.jfaf.calendario.data.remote.RemoteDayNote
 import com.jfaf.calendario.data.remote.RemoteDataSource
+import com.jfaf.calendario.data.remote.RemoteLocalHoliday
 import com.jfaf.calendario.data.remote.RemoteShift
+import com.jfaf.calendario.data.repository.RoomDayNoteRepository
+import com.jfaf.calendario.data.repository.RoomLocalHolidayRepository
 import com.jfaf.calendario.data.repository.RoomShiftAssignmentRepository
 import com.jfaf.calendario.data.repository.RoomShiftRepository
 import com.jfaf.calendario.data.sync.SyncEngine
+import com.jfaf.calendario.domain.model.DayNote
+import com.jfaf.calendario.domain.model.NoteKind
 import com.jfaf.calendario.domain.model.AuthState
 import com.jfaf.calendario.domain.model.Shift
 import com.jfaf.calendario.domain.model.SyncState
@@ -36,6 +42,8 @@ private class FakeRemote : RemoteDataSource {
     val shifts = mutableMapOf<Pair<String, String>, RemoteShift>()
     val assignments = mutableMapOf<Pair<String, String>, RemoteAssignment>()
     var offline = false
+    /** Se ejecuta una sola vez justo después de aceptar un envío de asignaciones: simula algo que ocurre a mitad de una sincronización. */
+    var afterUpsertAssignments: (suspend () -> Unit)? = null
     private var counter = 0
     private fun stamp() = (++counter).toString().padStart(10, '0')
     private fun check() { if (offline) throw IOException("sin red") }
@@ -54,6 +62,36 @@ private class FakeRemote : RemoteDataSource {
             val key = r.ownerId to r.id
             if (assignments[key].let { it == null || r.updatedAt >= it.updatedAt }) assignments[key] = r.copy(serverUpdatedAt = stamp())
         }
+        afterUpsertAssignments?.let { hook -> afterUpsertAssignments = null; hook() }
+    }
+
+    val holidays = mutableMapOf<Pair<String, String>, RemoteLocalHoliday>()
+    val dayNotes = mutableMapOf<Pair<String, String>, RemoteDayNote>()
+
+    override suspend fun upsertDayNotes(rows: List<RemoteDayNote>) {
+        check()
+        rows.forEach { r ->
+            val key = r.ownerId to r.id
+            if (dayNotes[key].let { it == null || r.updatedAt >= it.updatedAt }) dayNotes[key] = r.copy(serverUpdatedAt = stamp())
+        }
+    }
+
+    override suspend fun pullDayNotes(since: String?): List<RemoteDayNote> {
+        check()
+        return dayNotes.values.filter { it.ownerId == user && (since == null || it.serverUpdatedAt!! >= since) }.sortedBy { it.serverUpdatedAt }
+    }
+
+    override suspend fun upsertHolidays(rows: List<RemoteLocalHoliday>) {
+        check()
+        rows.forEach { r ->
+            val key = r.ownerId to r.date
+            if (holidays[key].let { it == null || r.updatedAt >= it.updatedAt }) holidays[key] = r.copy(serverUpdatedAt = stamp())
+        }
+    }
+
+    override suspend fun pullHolidays(since: String?): List<RemoteLocalHoliday> {
+        check()
+        return holidays.values.filter { it.ownerId == user && (since == null || it.serverUpdatedAt!! >= since) }.sortedBy { it.serverUpdatedAt }
     }
 
     var user = "u1"
@@ -76,6 +114,8 @@ private class Device(remote: FakeRemote) {
     val db = buildCalendarDatabase(Room.databaseBuilder<CalendarDatabase>(dbFile.absolutePath))
     val shifts = RoomShiftRepository(db.shiftDao())
     val assignments = RoomShiftAssignmentRepository(db.shiftAssignmentDao())
+    val holidays = RoomLocalHolidayRepository(db.localHolidayDao())
+    val notes = RoomDayNoteRepository(db.dayNoteDao())
     val engine = SyncEngine(
         db, remote,
         object : AuthRepository {
@@ -146,6 +186,33 @@ class SyncEngineTest {
         a.assignments.setShiftIds(day, emptyList())
         a.engine.syncNow("u1"); b.engine.syncNow("u1")
         assertEquals(emptyList(), b.ids())
+    }
+
+    @Test
+    fun localHolidaysAndTheirRemovalPropagate() = runTest {
+        a.holidays.setHoliday(setOf(day), true)
+        a.engine.syncNow("u1"); b.engine.syncNow("u1")
+        assertEquals(setOf(day), b.holidays.getHolidays(setOf(day)))
+        pause()
+        a.holidays.setHoliday(setOf(day), false)
+        a.engine.syncNow("u1"); b.engine.syncNow("u1")
+        assertTrue(b.holidays.getHolidays(setOf(day)).isEmpty())
+    }
+
+    @Test
+    fun dayNotesAndDebtsPropagate() = runTest {
+        val note = DayNote("n1", day, NoteKind.IOwe, "Ana", "cambio de guardia")
+        a.notes.upsert(note)
+        a.engine.syncNow("u1"); b.engine.syncNow("u1")
+        assertEquals(listOf(note), b.notes.observeNotes(day, day).first())
+        pause()
+        b.notes.setSettled("n1", true) // B salda la deuda
+        b.engine.syncNow("u1"); a.engine.syncNow("u1")
+        assertEquals(true, a.notes.observeDebts().first().single().settled)
+        pause()
+        a.notes.delete("n1")
+        a.engine.syncNow("u1"); b.engine.syncNow("u1")
+        assertTrue(b.notes.observeNotes(day, day).first().isEmpty())
     }
 
     @Test
@@ -234,5 +301,146 @@ class ForegroundSyncTest {
         } finally {
             scope.cancel(); phone.close(); pc.close(); prefsFile.delete()
         }
+    }
+}
+
+/** Casos límite de la sincronización: carreras a mitad de pasada, fallos parciales, conflictos y cuentas. */
+class SyncEngineEdgeCasesTest {
+    private val remote = FakeRemote()
+    private val a = Device(remote)
+    private val b = Device(remote)
+    private val day = LocalDate(2026, 11, 16)
+    private val otherDay = LocalDate(2026, 11, 17)
+
+    @AfterTest
+    fun tearDown() { a.close(); b.close() }
+
+    private suspend fun Device.ids(d: LocalDate = day) = assignments.getShiftIds(d)
+    private fun pause() = Thread.sleep(15) // los cambios se ordenan por reloj (ms)
+    private suspend fun Device.dirtyRows() =
+        db.shiftDao().getDirty().size + db.shiftAssignmentDao().getDirty().size +
+            db.localHolidayDao().getDirty().size + db.dayNoteDao().getDirty().size
+
+    @Test
+    fun anEditMadeWhileSyncingIsNotLostNorMarkedAsSent() = runTest {
+        a.assignments.setShiftIds(day, listOf("default-morning"))
+        // A mitad de la pasada (tras el envío, antes de la descarga) el usuario cambia el mismo día.
+        remote.afterUpsertAssignments = {
+            pause()
+            a.assignments.setShiftIds(day, listOf("default-night"))
+        }
+        a.engine.syncNow("u1")
+
+        // La descarga trae la versión antigua que acabamos de enviar: no debe pisar el cambio nuevo ni marcarlo como enviado.
+        assertEquals(listOf("default-night"), a.ids())
+        assertTrue(a.db.shiftAssignmentDao().getDirty().isNotEmpty())
+
+        a.engine.syncNow("u1"); b.engine.syncNow("u1")
+        assertEquals(listOf("default-night"), b.ids())
+        assertEquals(0, a.dirtyRows())
+    }
+
+    @Test
+    fun repaintingAClearedDayBringsItBackOnOtherDevices() = runTest {
+        a.assignments.setShiftIds(day, listOf("default-morning"))
+        a.engine.syncNow("u1"); b.engine.syncNow("u1")
+        pause()
+        a.assignments.setShiftIds(day, emptyList())
+        a.engine.syncNow("u1"); b.engine.syncNow("u1")
+        assertEquals(emptyList(), b.ids())
+        pause()
+        a.assignments.setShiftIds(day, listOf("default-afternoon")) // se repinta el día borrado
+        a.engine.syncNow("u1"); b.engine.syncNow("u1")
+        assertEquals(listOf("default-afternoon"), b.ids())
+        assertEquals(listOf("default-afternoon"), a.ids())
+    }
+
+    @Test
+    fun aFailureAfterSendingDoesNotLoseOtherDevicesChanges() = runTest {
+        b.assignments.setShiftIds(otherDay, listOf("default-night"))
+        b.engine.syncNow("u1")
+        a.assignments.setShiftIds(day, listOf("default-morning"))
+        // El envío de A llega al servidor pero la conexión cae antes de descargar.
+        remote.afterUpsertAssignments = { remote.offline = true }
+        a.engine.syncNow("u1")
+        assertEquals(SyncState.Failed(offline = true), a.engine.state.value)
+        assertEquals(emptyList(), a.ids(otherDay)) // aún no se ha descargado lo de B
+
+        remote.offline = false
+        a.engine.syncNow("u1")
+        assertEquals(listOf("default-night"), a.ids(otherDay)) // no se saltó nada
+        assertEquals(listOf("default-morning"), a.ids())
+        assertEquals(0, a.dirtyRows())
+    }
+
+    @Test
+    fun differentDaysEditedOnBothDevicesMerge() = runTest {
+        a.assignments.setShiftIds(day, listOf("default-morning"))
+        b.assignments.setShiftIds(otherDay, listOf("default-night"))
+        a.engine.syncNow("u1"); b.engine.syncNow("u1"); a.engine.syncNow("u1")
+        for (device in listOf(a, b)) {
+            assertEquals(listOf("default-morning"), device.ids(day))
+            assertEquals(listOf("default-night"), device.ids(otherDay))
+        }
+    }
+
+    @Test
+    fun syncingAgainWithoutChangesIsStable() = runTest {
+        a.assignments.setShiftIds(day, listOf("default-morning", "default-night"))
+        a.notes.upsert(DayNote("n1", day, NoteKind.Note, null, "curso"))
+        repeat(3) { a.engine.syncNow("u1"); b.engine.syncNow("u1") }
+        assertEquals(listOf("default-morning", "default-night"), b.ids())
+        assertEquals(listOf("curso"), b.notes.observeNotes(day, day).first().map { it.text })
+        assertEquals(3, b.shifts.observeShifts().first().size)
+        assertEquals(0, a.dirtyRows())
+        assertEquals(0, b.dirtyRows())
+        assertIs<SyncState.Idle>(b.engine.state.value)
+    }
+
+    @Test
+    fun lastEditWinsForNotesAndShifts() = runTest {
+        a.notes.upsert(DayNote("n1", day, NoteKind.IOwe, "Ana", "v0"))
+        a.engine.syncNow("u1"); b.engine.syncNow("u1")
+        pause()
+        a.notes.upsert(DayNote("n1", day, NoteKind.IOwe, "Ana", "de A"))
+        a.shifts.upsert(Shift("default-morning", "Nombre de A", "MA", 0xFF2196F3, 6 * 60, 14 * 60))
+        pause()
+        b.notes.upsert(DayNote("n1", day, NoteKind.IOwe, "Ana", "de B")) // B edita después
+        b.shifts.upsert(Shift("default-morning", "Nombre de B", "MB", 0xFF2196F3, 6 * 60, 14 * 60))
+        a.engine.syncNow("u1"); b.engine.syncNow("u1"); a.engine.syncNow("u1")
+        assertEquals("de B", a.notes.observeNotes(day, day).first().single().text)
+        assertEquals("de B", b.notes.observeNotes(day, day).first().single().text)
+        assertEquals("Nombre de B", a.shifts.observeShifts().first().first { it.id == "default-morning" }.name)
+    }
+
+    @Test
+    fun theFirstAccountAdoptsLocalDataAndStaysAfterResync() = runTest {
+        a.assignments.setShiftIds(day, listOf("default-morning")) // se pinta antes de iniciar sesión
+        a.engine.syncNow("u1")
+        assertTrue(remote.assignments.keys.any { it.first == "u1" })
+        a.engine.syncNow("u1") // misma cuenta: no se vacía nada
+        assertEquals(listOf("default-morning"), a.ids())
+    }
+
+    @Test
+    fun switchingAccountAlsoWipesNotesAndRestoresDefaultShifts() = runTest {
+        a.notes.upsert(DayNote("n1", day, NoteKind.OwedToMe, "Luis", ""))
+        a.shifts.upsert(Shift("custom", "Guardia", "G", 0xFF000000, 8 * 60, 20 * 60))
+        a.engine.syncNow("u1")
+        remote.user = "u2"
+        a.engine.syncNow("u2")
+        assertTrue(a.notes.observeDebts().first().isEmpty())
+        assertEquals(listOf("M", "T", "N"), a.shifts.observeShifts().first().map { it.abbreviation })
+        assertTrue(remote.dayNotes.keys.none { it.first == "u2" })
+        assertTrue(remote.shifts.keys.none { it.first == "u2" && it.second == "custom" })
+    }
+
+    @Test
+    fun anotherUsersDataIsNeverDownloaded() = runTest {
+        a.assignments.setShiftIds(day, listOf("default-morning"))
+        a.engine.syncNow("u1")
+        remote.user = "u2"
+        b.engine.syncNow("u2")
+        assertEquals(emptyList(), b.ids())
     }
 }

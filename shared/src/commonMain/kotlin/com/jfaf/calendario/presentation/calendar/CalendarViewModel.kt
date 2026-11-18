@@ -3,11 +3,21 @@ package com.jfaf.calendario.presentation.calendar
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jfaf.calendario.domain.model.CalendarMonth
+import com.jfaf.calendario.domain.model.DayNoteDraft
 import com.jfaf.calendario.domain.model.DayPattern
 import com.jfaf.calendario.domain.repository.TodayProvider
 import com.jfaf.calendario.domain.usecase.AssignShiftToDaysUseCase
 import com.jfaf.calendario.domain.usecase.ClearDaysUseCase
 import com.jfaf.calendario.domain.usecase.CopyDaysUseCase
+import com.jfaf.calendario.domain.usecase.DeleteDayNoteUseCase
+import com.jfaf.calendario.domain.usecase.ObserveDayNotesUseCase
+import com.jfaf.calendario.domain.usecase.ObserveDebtsUseCase
+import com.jfaf.calendario.domain.usecase.SaveDayNoteUseCase
+import com.jfaf.calendario.domain.usecase.SetNoteSettledUseCase
+import com.jfaf.calendario.domain.usecase.buildMonthGrid
+import com.jfaf.calendario.domain.usecase.markersOf
+import kotlinx.coroutines.flow.map
+import kotlinx.datetime.DayOfWeek
 import com.jfaf.calendario.domain.usecase.ObserveMonthUseCase
 import com.jfaf.calendario.domain.usecase.ObserveShiftsUseCase
 import com.jfaf.calendario.domain.usecase.ObserveSyncStateUseCase
@@ -15,6 +25,8 @@ import com.jfaf.calendario.domain.usecase.RequestSyncUseCase
 import com.jfaf.calendario.domain.usecase.PaintDayUseCase
 import com.jfaf.calendario.domain.usecase.PasteDaysUseCase
 import com.jfaf.calendario.domain.usecase.RepeatDaysUseCase
+import com.jfaf.calendario.domain.usecase.ToggleLocalHolidaysUseCase
+import com.jfaf.calendario.presentation.update.AppForegroundEvents
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -37,19 +49,38 @@ class CalendarViewModel(
     private val clearDays: ClearDaysUseCase,
     private val assignShift: AssignShiftToDaysUseCase,
     private val repeatDays: RepeatDaysUseCase,
+    private val toggleLocalHolidays: ToggleLocalHolidaysUseCase,
+    private val observeNotes: ObserveDayNotesUseCase,
+    observeDebts: ObserveDebtsUseCase,
+    private val saveNote: SaveDayNoteUseCase,
+    private val setNoteSettled: SetNoteSettledUseCase,
+    private val deleteNote: DeleteDayNoteUseCase,
     observeSync: ObserveSyncStateUseCase,
     private val requestSync: RequestSyncUseCase,
-    todayProvider: TodayProvider,
+    private val todayProvider: TodayProvider,
+    foregroundEvents: AppForegroundEvents,
 ) : ViewModel() {
-    private val today = todayProvider.today()
+    private var today = todayProvider.today()
     private val month = MutableStateFlow(CalendarMonth.of(today))
     private val paintShiftId = MutableStateFlow<String?>(null)
     private val mode = MutableStateFlow(CalendarMode.Paint)
     private val selection = MutableStateFlow<Set<LocalDate>>(emptySet())
     private val clipboard = MutableStateFlow<DayPattern?>(null)
     private val dialog = MutableStateFlow<CalendarDialog?>(null)
+    /** Día cuyas notas se están viendo (modo Notas); null = diálogo cerrado. */
+    private val notesDate = MutableStateFlow<LocalDate?>(null)
     /** Último día tocado: extremo desde el que se selecciona un rango con pulsación larga. */
     private var anchor: LocalDate? = null
+
+    init {
+        // Al volver a primer plano: recalcula "hoy" (puede haber cambiado de día) y sitúa el calendario en el mes actual.
+        viewModelScope.launch {
+            foregroundEvents.events.collect {
+                today = todayProvider.today()
+                month.value = CalendarMonth.of(today)
+            }
+        }
+    }
 
     private data class EditState(
         val mode: CalendarMode,
@@ -59,21 +90,44 @@ class CalendarViewModel(
         val syncIndicator: SyncIndicator?,
     )
 
+    private data class NotesState(val markers: Map<LocalDate, com.jfaf.calendario.domain.model.DayNoteMarkers>, val dialog: NotesDialogState?)
+
+    private val notesState = combine(
+        month.flatMapLatest { m ->
+            // Rango de los tres meses que se muestran (anterior, actual y siguiente), para marcar también los vecinos.
+            val before = buildMonthGrid(m.previous, DayOfWeek.MONDAY)
+            val after = buildMonthGrid(m.next, DayOfWeek.MONDAY)
+            observeNotes(before.first().first(), after.last().last())
+        },
+        notesDate.flatMapLatest { date -> if (date == null) kotlinx.coroutines.flow.flowOf(null) else observeNotes(date, date).map { date to it } },
+        observeDebts().map { balances -> balances.map { it.person } },
+    ) { monthNotes, open, people ->
+        NotesState(markersOf(monthNotes), open?.let { (date, notes) -> NotesDialogState(date, notes, people) })
+    }
+
     private val editState = combine(mode, selection, clipboard, dialog, observeSync()) { m, s, c, d, sync ->
         EditState(m, s, c != null, d, sync.toIndicator())
     }
 
+    /** Cuadrículas del mes mostrado y de sus vecinos: al deslizar, el vecino ya llega con sus turnos. */
+    private val threeMonths = month.flatMapLatest { m ->
+        combine(observeMonth(m.previous), observeMonth(m), observeMonth(m.next)) { prev, cur, next ->
+            Triple(prev, cur, next)
+        }
+    }
+
     val uiState: StateFlow<CalendarUiState> = combine(
         month,
-        month.flatMapLatest { observeMonth(it) },
+        threeMonths,
         observeShifts(),
         paintShiftId,
-        editState,
-    ) { m, weeks, shifts, paintId, edit ->
+        combine(editState, notesState) { edit, notes -> edit to notes },
+    ) { m, (prevWeeks, weeks, nextWeeks), shifts, paintId, (edit, notes) ->
         CalendarUiState(
-            month = m, today = today, weeks = weeks, shifts = shifts, paintShiftId = paintId,
+            month = m, today = today, weeks = weeks, prevWeeks = prevWeeks, nextWeeks = nextWeeks,
+            shifts = shifts, paintShiftId = paintId,
             mode = edit.mode, selection = edit.selection, hasClipboard = edit.hasClipboard, dialog = edit.dialog,
-            syncIndicator = edit.syncIndicator,
+            syncIndicator = edit.syncIndicator, noteMarkers = notes.markers, notesDialog = notes.dialog,
         )
     }.stateIn(
         viewModelScope,
@@ -87,6 +141,7 @@ class CalendarViewModel(
 
     fun onModeChange(newMode: CalendarMode) {
         mode.value = newMode
+        notesDate.value = null
         selection.value = emptySet()
         anchor = null
         dialog.value = null
@@ -98,6 +153,7 @@ class CalendarViewModel(
     fun onDayClick(date: LocalDate) {
         when (mode.value) {
             CalendarMode.Paint -> paintShiftId.value?.let { id -> viewModelScope.launch { paintDay(date, id) } }
+            CalendarMode.Notes -> notesDate.value = date
             CalendarMode.Edit -> {
                 selection.update { if (date in it) it - date else it + date }
                 anchor = date
@@ -138,9 +194,21 @@ class CalendarViewModel(
 
     fun onDelete() = withSelection { dates -> clearDays(dates) }
 
+    /** Marca los días seleccionados como festivo local (o los desmarca si todos ya lo eran). */
+    fun onToggleLocalHoliday() = withSelection { dates -> toggleLocalHolidays(dates) }
+
     fun onAssignClick() = withSelection { dialog.value = CalendarDialog.Assign }
     fun onRepeatClick() = withSelection { dialog.value = CalendarDialog.Repeat }
     fun onDismissDialog() { dialog.value = null }
+
+    fun onDismissNotes() { notesDate.value = null }
+
+    /** El formulario ya valida antes de enviar; si aun así no fuera válido, simplemente no se guarda. */
+    fun onSaveNote(draft: DayNoteDraft) { viewModelScope.launch { saveNote(draft) } }
+
+    fun onSettleNote(id: String, settled: Boolean) { viewModelScope.launch { setNoteSettled(id, settled) } }
+
+    fun onDeleteNote(id: String) { viewModelScope.launch { deleteNote(id) } }
 
     fun onAssign(shiftId: String, asSecond: Boolean) = withSelection { dates ->
         dialog.value = null

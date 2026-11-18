@@ -21,6 +21,7 @@ dependencies {
     implementation(project(":shared"))
     implementation(compose.desktop.currentOs)
     implementation(libs.kotlinx.coroutines.swing)
+    implementation(libs.sentry.jvm)
 }
 
 compose.desktop {
@@ -29,18 +30,36 @@ compose.desktop {
 
         nativeDistributions {
             targetFormats(TargetFormat.Msi, TargetFormat.Deb, TargetFormat.Dmg)
-            packageName = "Calendario"
+            packageName = "NurseOClock"
             packageVersion = "1.0.0"
             description = "Calendario de turnos"
             vendor = "jfaf"
+            linux {
+                iconFile.set(project.file("src/main/resources/icon.png"))
+            }
             windows {
-                menuGroup = "Calendario"
+                menuGroup = "NurseOClock"
+                iconFile.set(project.file("icons/icon.ico"))
                 shortcut = true
                 perUserInstall = true
                 // Identifica la app en las actualizaciones del MSI: no cambiar nunca
                 upgradeUuid = "6b0f6f0e-3c1a-4c52-9d0e-2a7d6a1c9e41"
             }
         }
+    }
+}
+
+// Escritorio: empaqueta el `versionCode` común (gradle.properties) para compararlo con app_config en Supabase.
+val appVersionCode = providers.gradleProperty("app.versionCode").get()
+val appVersionName = "1.0.0" // mantener igual que packageVersion (arriba)
+val generateAppVersion by tasks.registering {
+    val outDir = layout.buildDirectory.dir("generated/appversion")
+    inputs.property("versionCode", appVersionCode)
+    inputs.property("versionName", appVersionName)
+    outputs.dir(outDir)
+    doLast {
+        val file = File(outDir.get().asFile, "app-version.properties").apply { parentFile.mkdirs() }
+        file.writeText("version.code=$appVersionCode\nversion.name=$appVersionName\n")
     }
 }
 
@@ -59,4 +78,17 @@ val generateSupabaseConfig by tasks.registering {
         )
     }
 }
-tasks.processResources { from(generateSupabaseConfig) }
+
+// Escritorio: clave de Sentry (informes de fallos) de local.properties; vacía = desactivado.
+val generateSentryConfig by tasks.registering {
+    val outDir = layout.buildDirectory.dir("generated/sentry")
+    val propsFile = rootProject.file("local.properties")
+    inputs.files(propsFile).optional()
+    outputs.dir(outDir)
+    doLast {
+        val props = Properties().apply { if (propsFile.exists()) propsFile.inputStream().use { load(it) } }
+        val file = File(outDir.get().asFile, "sentry.properties").apply { parentFile.mkdirs() }
+        file.writeText("dsn=${props.getProperty("sentry.dsn", "")}\n")
+    }
+}
+tasks.processResources { from(generateSupabaseConfig, generateAppVersion, generateSentryConfig) }

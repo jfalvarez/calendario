@@ -7,4 +7,5 @@ data class CalendarDay(
     val date: LocalDate,
     val inCurrentMonth: Boolean,
     val shifts: List<Shift>,
+    val holiday: Holiday? = null,
 )

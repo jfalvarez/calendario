@@ -12,15 +12,17 @@ import androidx.sqlite.execSQL
 import kotlinx.coroutines.Dispatchers
 
 @Database(
-    entities = [ShiftEntity::class, ShiftAssignmentEntity::class],
-    version = 4, // 2: horario del turno; 3: pago (reservado); 4: ids de asignación deterministas (sin cambio de esquema)
+    entities = [ShiftEntity::class, ShiftAssignmentEntity::class, LocalHolidayEntity::class, DayNoteEntity::class],
+    version = 6, // 2: horario del turno; 3: pago (reservado); 4: ids de asignación deterministas;  5: festivos locales; 6: notas y deudas por día
     exportSchema = true,
-    autoMigrations = [AutoMigration(from = 1, to = 2), AutoMigration(from = 2, to = 3)],
+    autoMigrations = [AutoMigration(from = 1, to = 2), AutoMigration(from = 2, to = 3), AutoMigration(from = 4, to = 5), AutoMigration(from = 5, to = 6)],
 )
 @ConstructedBy(CalendarDatabaseConstructor::class)
 abstract class CalendarDatabase : RoomDatabase() {
     abstract fun shiftDao(): ShiftDao
     abstract fun shiftAssignmentDao(): ShiftAssignmentDao
+    abstract fun localHolidayDao(): LocalHolidayDao
+    abstract fun dayNoteDao(): DayNoteDao
 }
 
 /** Room genera la implementación (`actual`) en cada plataforma con KSP. */

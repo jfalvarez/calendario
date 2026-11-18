@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Calendario</string>
+    <string name="app_name">NurseOClock</string>
     <string name="today">Hoy</string>
     <string name="previous_month">Mes anterior</string>
     <string name="next_month">Mes siguiente</string>
@@ -68,6 +68,7 @@
     <string name="paste">Pegar</string>
     <string name="repeat">Repetir</string>
     <string name="clear_selection">Quitar selección</string>
+    <string name="local_holiday">Festivo local</string>
     <string name="repeat_title">Repetir selección</string>
     <string name="repeat_hint">El bloque seleccionado (del primer al último día) se repite a continuación.</string>
     <string name="repeat_times">Repeticiones</string>
@@ -75,6 +76,13 @@
 
     <string name="more_options">Más opciones</string>
     <string name="settings_title">Ajustes</string>
+    <string name="reminders_title">Recordatorios</string>
+    <string name="reminder_enable">Avisarme la víspera de cada turno</string>
+    <string name="reminder_enable_desc">Recibirás una notificación con tu turno del día siguiente.</string>
+    <string name="reminder_time">Hora del aviso</string>
+    <string name="reminder_permission_denied">Para recibir avisos, permite las notificaciones de NurseOClock en los ajustes del sistema.</string>
+    <string name="reminder_pick_time">Hora del aviso</string>
+    <string name="accept">Aceptar</string>
     <string name="app_style">Estilo</string>
     <string name="style_pop">Pop</string>
     <string name="style_pop_desc">Días pintados con el color del turno. Vivo y atrevido.</string>
@@ -129,4 +137,40 @@
     <string name="sync_status_synced">Sincronizado</string>
     <string name="sync_status_offline">Sin conexión</string>
     <string name="sync_status_error">Error al sincronizar</string>
+
+    <string name="update_required_title">Actualización necesaria</string>
+    <string name="update_required_message">Esta versión de NurseOClock ya no es compatible. Actualiza para seguir usándola.</string>
+    <string name="update_recommended_title">Nueva versión disponible</string>
+    <string name="update_recommended_message">Hay una versión nueva de NurseOClock con mejoras y correcciones.</string>
+    <string name="update_now">Actualizar</string>
+    <string name="update_later">Más tarde</string>
+    <string name="mode_notes">Notas</string>
+    <string name="notes_mode_hint">Toca un día para ver o añadir notas y turnos debidos</string>
+    <string name="notes_dialog_title">Notas del %1$d de %2$s</string>
+    <string name="notes_empty">Este día no tiene notas.</string>
+    <string name="note_add">Añadir</string>
+    <string name="note_close">Cerrar</string>
+    <string name="note_kind_note">Nota</string>
+    <string name="note_kind_i_owe">Debo un turno</string>
+    <string name="note_kind_owed_to_me">Me deben un turno</string>
+    <string name="note_person_i_owe">¿A quién se lo debo?</string>
+    <string name="note_person_owed_to_me">¿Quién me lo debe?</string>
+    <string name="note_text">Nota</string>
+    <string name="note_text_optional">Detalle (opcional)</string>
+    <string name="note_edit">Editar</string>
+    <string name="note_delete">Eliminar</string>
+    <string name="note_settled">Saldada</string>
+    <string name="note_debt_i_owe">Debes un turno a %1$s</string>
+    <string name="note_debt_owed_to_me">%1$s te debe un turno</string>
+    <string name="debts_title">Turnos pendientes</string>
+    <string name="debts_empty">No hay turnos debidos. Apúntalos desde el modo Notas del calendario.</string>
+    <string name="debts_you_owe">Debes %1$d</string>
+    <string name="debts_owed_to_you">Te deben %1$d</string>
+    <string name="debts_all_settled">Todo saldado</string>
+    <string name="debts_settled_section">Saldadas</string>
+    <string name="debt_mark_settled">Marcar como saldada</string>
+    <string name="debt_reopen">Reabrir</string>
+    <string name="diagnostics_title">Diagnóstico</string>
+    <string name="test_report_send">Enviar informe de prueba</string>
+    <string name="test_report_sent">Informe enviado</string>
 </resources>

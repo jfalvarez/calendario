@@ -50,6 +50,9 @@ language plpgsql
 set search_path = ''
 as $$
 begin
+  -- updated_at lo pone el cliente: se limita a «ahora + 5 min» para que un reloj adelantado (o un valor manipulado)
+  -- no deje la fila congelada ignorando para siempre las ediciones posteriores.
+  new.updated_at := least(new.updated_at, (extract(epoch from now()) * 1000)::bigint + 300000);
   if tg_op = 'UPDATE' and new.updated_at < old.updated_at then
     return old; -- versión obsoleta: se conserva la que ya había
   end if;
@@ -93,3 +96,109 @@ create policy assignments_insert on public.shift_assignments for insert to authe
   with check (owner_id = (select auth.uid()));
 create policy assignments_update on public.shift_assignments for update to authenticated
   using (owner_id = (select auth.uid())) with check (owner_id = (select auth.uid()));
+
+-- ---------------------------------------------------------------------------
+-- Festivos locales (marcados por el usuario). Se identifican por (owner_id, holiday_date).
+-- Mismo esquema de sincronización que el resto: borrado lógico + último cambio gana.
+-- ---------------------------------------------------------------------------
+create table if not exists public.local_holidays (
+  owner_id           uuid   not null default auth.uid() references auth.users (id) on delete cascade,
+  holiday_date       date   not null,
+  updated_at         bigint not null,
+  deleted_at         bigint,
+  server_updated_at  timestamptz not null default now(),
+  primary key (owner_id, holiday_date)
+);
+
+create index if not exists local_holidays_cursor_idx on public.local_holidays (owner_id, server_updated_at);
+
+drop trigger if exists local_holidays_lww on public.local_holidays;
+create trigger local_holidays_lww before insert or update on public.local_holidays
+  for each row execute function public.apply_last_write_wins();
+
+alter table public.local_holidays enable row level security;
+
+drop policy if exists holidays_select on public.local_holidays;
+drop policy if exists holidays_insert on public.local_holidays;
+drop policy if exists holidays_update on public.local_holidays;
+create policy holidays_select on public.local_holidays for select to authenticated
+  using (owner_id = (select auth.uid()));
+create policy holidays_insert on public.local_holidays for insert to authenticated
+  with check (owner_id = (select auth.uid()));
+create policy holidays_update on public.local_holidays for update to authenticated
+  using (owner_id = (select auth.uid())) with check (owner_id = (select auth.uid()));
+
+-- ---------------------------------------------------------------------------
+-- Política de versiones (actualizaciones forzadas). Una fila por plataforma; la app la lee al arrancar.
+-- Solo se edita desde el panel de Supabase: no hay políticas de insert/update/delete. No guarda datos de usuario.
+-- Ej.: update public.app_config set min_version_code = 13, updated_at = now() where platform = 'android';
+-- ---------------------------------------------------------------------------
+create table if not exists public.app_config (
+  platform                  text primary key check (platform in ('android', 'desktop')),
+  min_version_code          integer not null default 1,
+  recommended_version_code  integer not null default 1,
+  message                   text,
+  store_url                 text,
+  updated_at                timestamptz not null default now(),
+  check (recommended_version_code >= min_version_code)
+);
+
+alter table public.app_config enable row level security;
+
+drop policy if exists app_config_select on public.app_config;
+create policy app_config_select on public.app_config for select to anon, authenticated using (true);
+
+insert into public.app_config (platform) values ('android'), ('desktop') on conflict do nothing;
+
+-- ---------------------------------------------------------------------------
+-- Notas por día y turnos debidos. `kind`: Note (nota libre), IOwe (debo un turno a `person`) u OwedToMe (`person` me
+-- debe un turno); `settled` marca que ya se devolvió. Mismo esquema de sincronización: borrado lógico + último cambio gana.
+-- ---------------------------------------------------------------------------
+create table if not exists public.day_notes (
+  owner_id           uuid    not null default auth.uid() references auth.users (id) on delete cascade,
+  id                 text    not null,
+  note_date          date    not null,
+  kind               text    not null check (kind in ('Note', 'IOwe', 'OwedToMe')),
+  person             text,
+  body               text    not null default '',
+  settled            boolean not null default false,
+  updated_at         bigint  not null,
+  deleted_at         bigint,
+  server_updated_at  timestamptz not null default now(),
+  primary key (owner_id, id)
+);
+
+create index if not exists day_notes_cursor_idx on public.day_notes (owner_id, server_updated_at);
+
+drop trigger if exists day_notes_lww on public.day_notes;
+create trigger day_notes_lww before insert or update on public.day_notes
+  for each row execute function public.apply_last_write_wins();
+
+alter table public.day_notes enable row level security;
+
+drop policy if exists day_notes_select on public.day_notes;
+drop policy if exists day_notes_insert on public.day_notes;
+drop policy if exists day_notes_update on public.day_notes;
+create policy day_notes_select on public.day_notes for select to authenticated
+  using (owner_id = (select auth.uid()));
+create policy day_notes_insert on public.day_notes for insert to authenticated
+  with check (owner_id = (select auth.uid()));
+create policy day_notes_update on public.day_notes for update to authenticated
+  using (owner_id = (select auth.uid())) with check (owner_id = (select auth.uid()));
+
+-- ---------------------------------------------------------------------------
+-- Límites de tamaño en el servidor. La app ya valida (notas 500, persona 40, abreviatura 3), pero un cliente
+-- manipulado con la clave pública podría subir filas enormes y agotar la cuota. Holgados a propósito.
+-- `not valid`: sólo se exigen a las filas nuevas o modificadas (no revisa las existentes, así no falla al re-ejecutar).
+-- ---------------------------------------------------------------------------
+alter table public.shifts drop constraint if exists shifts_name_len;
+alter table public.shifts add constraint shifts_name_len
+  check (char_length(name) <= 100 and char_length(abbreviation) <= 10) not valid;
+
+alter table public.shift_assignments drop constraint if exists assignments_shift_id_len;
+alter table public.shift_assignments add constraint assignments_shift_id_len
+  check (char_length(id) <= 64 and char_length(shift_id) <= 64) not valid;
+
+alter table public.day_notes drop constraint if exists day_notes_len;
+alter table public.day_notes add constraint day_notes_len
+  check (char_length(body) <= 1000 and char_length(coalesce(person, '')) <= 80 and char_length(id) <= 64) not valid;

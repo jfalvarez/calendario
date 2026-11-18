@@ -15,10 +15,12 @@ import androidx.navigation.compose.rememberNavController
 import com.jfaf.calendario.domain.model.AppStyle
 import com.jfaf.calendario.domain.model.ThemeMode
 import com.jfaf.calendario.presentation.calendar.CalendarScreen
+import com.jfaf.calendario.presentation.debts.DebtsScreen
 import com.jfaf.calendario.presentation.settings.SettingsScreen
 import com.jfaf.calendario.presentation.settings.SettingsViewModel
 import com.jfaf.calendario.presentation.shifts.ShiftsScreen
 import com.jfaf.calendario.presentation.stats.StatsScreen
+import com.jfaf.calendario.presentation.update.UpdateGate
 import org.koin.compose.viewmodel.koinViewModel
 
 private object Routes {
@@ -26,6 +28,7 @@ private object Routes {
     const val SHIFTS = "shifts"
     const val SETTINGS = "settings"
     const val STATS = "stats"
+    const val DEBTS = "debts"
 }
 
 /**
@@ -48,18 +51,22 @@ fun App(onDarkThemeChanged: (Boolean) -> Unit = {}) {
     CalendarioTheme(style ?: AppStyle.Pop, darkTheme) {
         Surface(modifier = Modifier.fillMaxSize()) {
             if (mode == null || style == null) return@Surface // ajustes aún sin leer: sólo el fondo, sin destello de tema
-            val navController = rememberNavController()
-            NavHost(navController, startDestination = Routes.CALENDAR) {
-                composable(Routes.CALENDAR) {
-                    CalendarScreen(
-                        onOpenShifts = { navController.navigate(Routes.SHIFTS) },
-                        onOpenSettings = { navController.navigate(Routes.SETTINGS) },
-                        onOpenStats = { navController.navigate(Routes.STATS) },
-                    )
+            UpdateGate {
+                val navController = rememberNavController()
+                NavHost(navController, startDestination = Routes.CALENDAR) {
+                    composable(Routes.CALENDAR) {
+                        CalendarScreen(
+                            onOpenShifts = { navController.navigate(Routes.SHIFTS) },
+                            onOpenSettings = { navController.navigate(Routes.SETTINGS) },
+                            onOpenStats = { navController.navigate(Routes.STATS) },
+                            onOpenDebts = { navController.navigate(Routes.DEBTS) },
+                        )
+                    }
+                    composable(Routes.SHIFTS) { ShiftsScreen(onBack = { navController.popBackStack() }) }
+                    composable(Routes.SETTINGS) { SettingsScreen(onBack = { navController.popBackStack() }) }
+                    composable(Routes.STATS) { StatsScreen(onBack = { navController.popBackStack() }) }
+                    composable(Routes.DEBTS) { DebtsScreen(onBack = { navController.popBackStack() }) }
                 }
-                composable(Routes.SHIFTS) { ShiftsScreen(onBack = { navController.popBackStack() }) }
-                composable(Routes.SETTINGS) { SettingsScreen(onBack = { navController.popBackStack() }) }
-                composable(Routes.STATS) { StatsScreen(onBack = { navController.popBackStack() }) }
             }
         }
     }

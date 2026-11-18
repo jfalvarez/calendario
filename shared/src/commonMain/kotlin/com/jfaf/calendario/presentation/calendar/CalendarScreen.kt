@@ -36,6 +36,7 @@ import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.ContentCut
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
@@ -59,9 +60,22 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
+import kotlinx.coroutines.launch
+import kotlin.math.abs
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilledTonalIconButton
@@ -72,12 +86,18 @@ import com.jfaf.calendario.domain.model.AppStyle
 import com.jfaf.calendario.presentation.theme.LocalAppStyle
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.text.KeyboardOptions
 import com.jfaf.calendario.domain.model.CalendarDay
+import com.jfaf.calendario.domain.model.DayNoteDraft
+import com.jfaf.calendario.domain.model.DayNoteMarkers
+import androidx.compose.material.icons.filled.StickyNote2
+import androidx.compose.material.icons.filled.SwapHoriz
 import com.jfaf.calendario.domain.model.Shift
 import com.jfaf.calendario.resources.*
 import com.jfaf.calendario.presentation.common.color
@@ -87,6 +107,10 @@ import org.jetbrains.compose.resources.stringArrayResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
+/** Fracción del ancho de la cuadrícula que hay que arrastrar para cambiar de mes al soltar. */
+private const val SWIPE_THRESHOLD = 0.25f
+private const val SLIDE_MS = 180
+
 /** Acciones que la pantalla envía al ViewModel (agrupadas para no arrastrar quince parámetros). */
 class CalendarActions(
     val onPreviousMonth: () -> Unit = {},
@@ -95,6 +119,7 @@ class CalendarActions(
     val onOpenShifts: () -> Unit = {},
     val onOpenSettings: () -> Unit = {},
     val onOpenStats: () -> Unit = {},
+    val onOpenDebts: () -> Unit = {},
     val onModeChange: (CalendarMode) -> Unit = {},
     val onShiftSelected: (String) -> Unit = {},
     val onDayClick: (LocalDate) -> Unit = {},
@@ -104,19 +129,30 @@ class CalendarActions(
     val onCut: () -> Unit = {},
     val onPaste: () -> Unit = {},
     val onDelete: () -> Unit = {},
+    val onToggleLocalHoliday: () -> Unit = {},
     val onAssignClick: () -> Unit = {},
     val onRepeatClick: () -> Unit = {},
     val onDismissDialog: () -> Unit = {},
     val onAssign: (shiftId: String, asSecond: Boolean) -> Unit = { _, _ -> },
     val onRepeat: (times: Int) -> Unit = {},
     val onSyncClick: () -> Unit = {},
+    val onDismissNotes: () -> Unit = {},
+    val onSaveNote: (DayNoteDraft) -> Unit = {},
+    val onSettleNote: (id: String, settled: Boolean) -> Unit = { _, _ -> },
+    val onDeleteNote: (id: String) -> Unit = {},
 )
 
 /** Pantalla con estado (conecta el ViewModel) y contenido sin estado (testeable/previsualizable). */
 @Composable
-fun CalendarScreen(onOpenShifts: () -> Unit, onOpenSettings: () -> Unit, onOpenStats: () -> Unit, viewModel: CalendarViewModel = koinViewModel()) {
+fun CalendarScreen(
+    onOpenShifts: () -> Unit,
+    onOpenSettings: () -> Unit,
+    onOpenStats: () -> Unit,
+    onOpenDebts: () -> Unit,
+    viewModel: CalendarViewModel = koinViewModel(),
+) {
     val state by viewModel.uiState.collectAsState()
-    val actions = remember(viewModel, onOpenShifts, onOpenSettings, onOpenStats) {
+    val actions = remember(viewModel, onOpenShifts, onOpenSettings, onOpenStats, onOpenDebts) {
         CalendarActions(
             onPreviousMonth = viewModel::onPreviousMonth,
             onNextMonth = viewModel::onNextMonth,
@@ -124,6 +160,7 @@ fun CalendarScreen(onOpenShifts: () -> Unit, onOpenSettings: () -> Unit, onOpenS
             onOpenShifts = onOpenShifts,
             onOpenSettings = onOpenSettings,
             onOpenStats = onOpenStats,
+            onOpenDebts = onOpenDebts,
             onModeChange = viewModel::onModeChange,
             onShiftSelected = viewModel::onShiftSelected,
             onDayClick = viewModel::onDayClick,
@@ -133,12 +170,17 @@ fun CalendarScreen(onOpenShifts: () -> Unit, onOpenSettings: () -> Unit, onOpenS
             onCut = viewModel::onCut,
             onPaste = viewModel::onPaste,
             onDelete = viewModel::onDelete,
+            onToggleLocalHoliday = viewModel::onToggleLocalHoliday,
             onAssignClick = viewModel::onAssignClick,
             onRepeatClick = viewModel::onRepeatClick,
             onDismissDialog = viewModel::onDismissDialog,
             onAssign = viewModel::onAssign,
             onRepeat = viewModel::onRepeat,
             onSyncClick = viewModel::onSyncClick,
+            onDismissNotes = viewModel::onDismissNotes,
+            onSaveNote = viewModel::onSaveNote,
+            onSettleNote = viewModel::onSettleNote,
+            onDeleteNote = viewModel::onDeleteNote,
         )
     }
     CalendarContent(state, actions)
@@ -148,6 +190,21 @@ fun CalendarScreen(onOpenShifts: () -> Unit, onOpenSettings: () -> Unit, onOpenS
 fun CalendarContent(state: CalendarUiState, actions: CalendarActions) {
     val monthNames = stringArrayResource(Res.array.month_names)
     val weekdays = stringArrayResource(Res.array.weekday_short)
+    val haptics = LocalHapticFeedback.current
+    val scope = rememberCoroutineScope()
+    // Deslizamiento horizontal de la cuadrícula: `slide` es su desplazamiento en píxeles.
+    val slide = remember { Animatable(0f) }
+    var gridWidth by remember { mutableFloatStateOf(0f) }
+    // +1 = mes siguiente, -1 = mes anterior, 0 = ninguno pendiente de entrar.
+    var pendingDirection by remember { mutableIntStateOf(0) }
+    // Cuando el ViewModel ya muestra el nuevo mes, la cuadrícula entra desde el lado opuesto.
+    LaunchedEffect(state.month) {
+        if (pendingDirection != 0) {
+            // El mes vecino ya ocupa exactamente esa posición: basta con recolocar la tira sin animar.
+            slide.snapTo(0f)
+            pendingDirection = 0
+        }
+    }
     Column(Modifier.fillMaxSize().safeDrawingPadding().padding(8.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             FilledTonalIconButton(onClick = actions.onPreviousMonth) {
@@ -164,7 +221,7 @@ fun CalendarContent(state: CalendarUiState, actions: CalendarActions) {
                 Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, stringResource(Res.string.next_month))
             }
             FilledTonalButton(onClick = actions.onToday) { Text(stringResource(Res.string.today)) }
-            OverflowMenu(actions.onOpenShifts, actions.onOpenStats, actions.onOpenSettings)
+            OverflowMenu(actions.onOpenShifts, actions.onOpenStats, actions.onOpenDebts, actions.onOpenSettings)
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             FilterChip(
@@ -177,6 +234,11 @@ fun CalendarContent(state: CalendarUiState, actions: CalendarActions) {
                 onClick = { actions.onModeChange(CalendarMode.Edit) },
                 label = { Text(stringResource(Res.string.mode_edit)) },
             )
+            FilterChip(
+                selected = state.mode == CalendarMode.Notes,
+                onClick = { actions.onModeChange(CalendarMode.Notes) },
+                label = { Text(stringResource(Res.string.mode_notes)) },
+            )
             Spacer(Modifier.weight(1f))
             state.syncIndicator?.let { SyncStatus(it, actions.onSyncClick) }
         }
@@ -185,20 +247,62 @@ fun CalendarContent(state: CalendarUiState, actions: CalendarActions) {
                 Text(it, Modifier.weight(1f), textAlign = TextAlign.Center, style = MaterialTheme.typography.labelMedium)
             }
         }
-        Column(Modifier.weight(1f).fillMaxWidth()) {
-            state.weeks.forEach { week ->
-                Row(Modifier.weight(1f).fillMaxWidth()) {
-                    week.forEach { day ->
-                        DayCell(
-                            day = day,
-                            isToday = day.date == state.today,
-                            isSelected = day.date in state.selection,
-                            onClick = { actions.onDayClick(day.date) },
-                            onLongClick = { actions.onDayLongPress(day.date) },
-                        )
-                    }
-                }
+        Box(
+            Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .onSizeChanged { gridWidth = it.width.toFloat() }
+                .clipToBounds()
+                .pointerInput(actions) {
+                    detectHorizontalDragGestures(
+                        onDragEnd = {
+                            val w = gridWidth
+                            val x = slide.value
+                            val dir = when {
+                                x <= -w * SWIPE_THRESHOLD -> 1
+                                x >= w * SWIPE_THRESHOLD -> -1
+                                else -> 0
+                            }
+                            scope.launch {
+                                if (dir == 0) {
+                                    slide.animateTo(0f, tween(SLIDE_MS))
+                                } else {
+                                    // Sale la cuadrícula actual y, al terminar, se cambia el mes.
+                                    slide.animateTo(-dir * w, tween(SLIDE_MS))
+                                    pendingDirection = dir
+                                    if (dir > 0) actions.onNextMonth() else actions.onPreviousMonth()
+                                }
+                            }
+                        },
+                        onDragCancel = { scope.launch { slide.animateTo(0f, tween(SLIDE_MS)) } },
+                        onHorizontalDrag = { change, dragAmount ->
+                            change.consume()
+                            if (pendingDirection == 0) {
+                                scope.launch { slide.snapTo(slide.value + dragAmount) }
+                            }
+                        },
+                    )
+                },
+        ) {
+            val renderDay: @Composable RowScope.(CalendarDay) -> Unit = { day ->
+                DayCell(
+                    day = day,
+                    isToday = day.date == state.today,
+                    isSelected = day.date in state.selection,
+                    markers = state.noteMarkers[day.date],
+                    onClick = {
+                        // Pintar un turno en el día: respuesta háptica (en escritorio no hace nada).
+                        if (state.mode == CalendarMode.Paint && state.paintShiftId != null) {
+                            haptics.performHapticFeedback(HapticFeedbackType.ContextClick)
+                        }
+                        actions.onDayClick(day.date)
+                    },
+                    onLongClick = { actions.onDayLongPress(day.date) },
+                )
             }
+            MonthWeeks(state.prevWeeks, Modifier.fillMaxSize().graphicsLayer { translationX = slide.value - gridWidth }, renderDay)
+            MonthWeeks(state.weeks, Modifier.fillMaxSize().graphicsLayer { translationX = slide.value }, renderDay)
+            MonthWeeks(state.nextWeeks, Modifier.fillMaxSize().graphicsLayer { translationX = slide.value + gridWidth }, renderDay)
         }
         Surface(
             Modifier.fillMaxWidth().padding(top = 8.dp),
@@ -209,15 +313,34 @@ fun CalendarContent(state: CalendarUiState, actions: CalendarActions) {
                 when (state.mode) {
                     CalendarMode.Paint -> PaintBar(state, actions)
                     CalendarMode.Edit -> EditBar(state, actions)
+                    CalendarMode.Notes -> Text(
+                        stringResource(Res.string.notes_mode_hint),
+                        style = MaterialTheme.typography.labelSmall,
+                        modifier = Modifier.padding(vertical = 8.dp),
+                    )
                 }
             }
         }
     }
 
     when (state.dialog) {
-        CalendarDialog.Assign -> AssignDialog(state.shifts, actions.onDismissDialog, actions.onAssign)
+        CalendarDialog.Assign -> AssignDialog(state.shifts, actions.onDismissDialog) { shiftId, asSecond ->
+            haptics.performHapticFeedback(HapticFeedbackType.ContextClick)
+            actions.onAssign(shiftId, asSecond)
+        }
         CalendarDialog.Repeat -> RepeatDialog(actions.onDismissDialog, actions.onRepeat)
         null -> Unit
+    }
+
+    state.notesDialog?.let { notes ->
+        NotesDialog(
+            state = notes,
+            monthName = monthNames[notes.date.month.ordinal],
+            onDismiss = actions.onDismissNotes,
+            onSave = actions.onSaveNote,
+            onSettle = actions.onSettleNote,
+            onDelete = actions.onDeleteNote,
+        )
     }
 }
 
@@ -265,6 +388,7 @@ private fun PaintBar(state: CalendarUiState, actions: CalendarActions) {
 @Composable
 private fun EditBar(state: CalendarUiState, actions: CalendarActions) {
     val hasSelection = state.selection.isNotEmpty()
+    val haptics = LocalHapticFeedback.current
     Text(
         if (hasSelection) stringResource(Res.string.selected_count, state.selection.size)
         else stringResource(Res.string.edit_mode_hint),
@@ -275,8 +399,12 @@ private fun EditBar(state: CalendarUiState, actions: CalendarActions) {
         ActionButton(Icons.Filled.Brush, Res.string.assign_shift, hasSelection, actions.onAssignClick)
         ActionButton(Icons.Filled.ContentCopy, Res.string.copy, hasSelection, actions.onCopy)
         ActionButton(Icons.Filled.ContentCut, Res.string.cut, hasSelection, actions.onCut)
-        ActionButton(Icons.Filled.ContentPaste, Res.string.paste, hasSelection && state.hasClipboard, actions.onPaste)
+        ActionButton(Icons.Filled.ContentPaste, Res.string.paste, hasSelection && state.hasClipboard) {
+            haptics.performHapticFeedback(HapticFeedbackType.ContextClick)
+            actions.onPaste()
+        }
         ActionButton(Icons.Filled.Repeat, Res.string.repeat, hasSelection, actions.onRepeatClick)
+        ActionButton(Icons.Filled.Flag, Res.string.local_holiday, hasSelection, actions.onToggleLocalHoliday)
         ActionButton(Icons.Filled.Delete, Res.string.delete, hasSelection, actions.onDelete)
         ActionButton(Icons.Filled.Close, Res.string.clear_selection, hasSelection, actions.onClearSelection)
     }
@@ -359,6 +487,7 @@ private fun RowScope.DayCell(
     day: CalendarDay,
     isToday: Boolean,
     isSelected: Boolean,
+    markers: DayNoteMarkers?,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
 ) {
@@ -376,7 +505,9 @@ private fun RowScope.DayCell(
     val background by animateColorAsState(if (isSelected) colors.primaryContainer else base)
     val scale by animateFloatAsState(if (isSelected) 0.93f else 1f, spring(dampingRatio = Spring.DampingRatioMediumBouncy))
     val shape = MaterialTheme.shapes.small
+    // Festivo (nacional o local): el número del día siempre en rojo, sea cual sea el fondo.
     val numberColor = when {
+        day.holiday != null -> colors.error
         isSelected -> colors.onPrimaryContainer
         fillShift != null -> fillShift.color.onShiftColor
         style == AppStyle.Sorbete && isToday -> colors.onPrimary
@@ -410,7 +541,7 @@ private fun RowScope.DayCell(
                 Text(
                     "${day.date.day}", fontSize = 12.sp,
                     fontWeight = if (isToday) FontWeight.ExtraBold else FontWeight.Medium,
-                    color = if (isToday) colors.onPrimary else numberColor,
+                    color = if (isToday && day.holiday == null) colors.onPrimary else numberColor,
                 )
             }
             Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
@@ -423,10 +554,27 @@ private fun RowScope.DayCell(
                 color = numberColor,
             )
             if (fillShift != null) {
-                Text(fillShift.abbreviation, color = numberColor, fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                Text(fillShift.abbreviation, color = fillShift.color.onShiftColor, fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1)
                 day.shifts.drop(1).forEach { ShiftTag(it, Modifier.fillMaxWidth()) }
             } else {
                 day.shifts.forEach { ShiftTag(it, Modifier.fillMaxWidth()) }
+            }
+        }
+if (markers != null) NoteMarker(markers)
+    }
+}
+
+/** Cuadrícula de un mes: una fila por semana, cada día lo dibuja [dayCell]. */
+@Composable
+private fun MonthWeeks(
+    weeks: List<List<CalendarDay>>,
+    modifier: Modifier,
+    dayCell: @Composable RowScope.(CalendarDay) -> Unit,
+) {
+    Column(modifier) {
+        weeks.forEach { week ->
+            Row(Modifier.weight(1f).fillMaxWidth()) {
+                week.forEach { day -> dayCell(day) }
             }
         }
     }
@@ -445,7 +593,7 @@ private fun ShiftTag(shift: Shift, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun OverflowMenu(onOpenShifts: () -> Unit, onOpenStats: () -> Unit, onOpenSettings: () -> Unit) {
+private fun OverflowMenu(onOpenShifts: () -> Unit, onOpenStats: () -> Unit, onOpenDebts: () -> Unit, onOpenSettings: () -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     Box {
         IconButton(onClick = { expanded = true }) {
@@ -455,6 +603,10 @@ private fun OverflowMenu(onOpenShifts: () -> Unit, onOpenStats: () -> Unit, onOp
             DropdownMenuItem(
                 text = { Text(stringResource(Res.string.manage_shifts)) },
                 onClick = { expanded = false; onOpenShifts() },
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(Res.string.debts_title)) },
+                onClick = { expanded = false; onOpenDebts() },
             )
             DropdownMenuItem(
                 text = { Text(stringResource(Res.string.stats_title)) },
@@ -506,5 +658,24 @@ private fun SyncStatus(indicator: SyncIndicator, onClick: () -> Unit) {
             )
         }
         Text(label, style = MaterialTheme.typography.labelSmall, color = color, maxLines = 1)
+    }
+}
+
+/**
+ * Píldora de ancho completo, como la de un turno, para el día con notas y/o turnos debidos sin saldar. Lleva colores
+ * propios (no los de un turno) para no confundirse con ellos: terciario si hay deuda pendiente, secundario si sólo hay nota.
+ */
+@Composable
+private fun NoteMarker(markers: DayNoteMarkers) {
+    val colors = MaterialTheme.colorScheme
+    val container = if (markers.hasOpenDebt) colors.tertiaryContainer else colors.secondaryContainer
+    val content = if (markers.hasOpenDebt) colors.onTertiaryContainer else colors.onSecondaryContainer
+    Row(
+        Modifier.fillMaxWidth().heightIn(min = 17.dp).background(container, CircleShape),
+        horizontalArrangement = Arrangement.spacedBy(3.dp, Alignment.CenterHorizontally),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (markers.hasNote) Icon(Icons.Filled.StickyNote2, null, Modifier.size(13.dp), tint = content)
+        if (markers.hasOpenDebt) Icon(Icons.Filled.SwapHoriz, null, Modifier.size(15.dp), tint = content)
     }
 }

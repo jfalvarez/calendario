@@ -13,8 +13,9 @@ import kotlin.test.assertTrue
 class MonthUseCasesTest {
     private val shifts = InMemoryShiftRepository()
     private val assignments = InMemoryShiftAssignmentRepository()
+    private val localHolidays = com.jfaf.calendario.fakes.InMemoryLocalHolidayRepository()
     private val paint = PaintDayUseCase(assignments)
-    private val observeMonth = ObserveMonthUseCase(shifts, assignments)
+    private val observeMonth = ObserveMonthUseCase(shifts, assignments, localHolidays)
     private val day = LocalDate(2025, 11, 12)
 
     @Test
