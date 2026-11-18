@@ -10,6 +10,7 @@ import com.jfaf.calendario.data.remote.SupabaseRemoteDataSource
 import com.jfaf.calendario.data.remote.SupabaseSocialRepository
 import com.jfaf.calendario.domain.repository.SocialRepository
 import com.jfaf.calendario.presentation.social.SocialViewModel
+import com.jfaf.calendario.presentation.backup.BackupViewModel
 import com.jfaf.calendario.presentation.social.SharedScheduleViewModel
 import com.jfaf.calendario.data.sync.SyncEngine
 import com.jfaf.calendario.domain.repository.AuthRepository
@@ -128,6 +129,7 @@ val dataModule = module {
     }
     single<AuthRepository> { SupabaseAuthRepository(get()) }
     single<SocialRepository> { SupabaseSocialRepository(get()) }
+    single<com.jfaf.calendario.domain.repository.BackupStore> { com.jfaf.calendario.data.backup.RoomBackupStore(get()) }
     single<RemoteDataSource> { SupabaseRemoteDataSource(get()) }
     single<AppConfigRepository> { SupabaseAppConfigRepository(get(), get()) }
     single { SyncEngine(get(), get(), get(), get(), CoroutineScope(SupervisorJob() + Dispatchers.Default), errors = get()) }
@@ -159,6 +161,8 @@ val domainModule = module {
     factory { ChangePasswordUseCase(get()) }
     factory { ObserveAuthStateUseCase(get()) }
     factory { PushRegistration(get(), getOrNull()) }
+    factory { com.jfaf.calendario.domain.usecase.ExportBackupUseCase(get()) }
+    factory { com.jfaf.calendario.domain.usecase.ImportBackupUseCase(get()) }
     factory { ObserveSyncStateUseCase(get()) }
     factory { RequestSyncUseCase(get()) }
     factory { ObserveThemeModeUseCase(get()) }
@@ -185,6 +189,7 @@ val presentationModule = module {
     viewModelOf(::SettingsViewModel)
     viewModelOf(::AccountViewModel)
     viewModelOf(::SocialViewModel)
+    viewModelOf(::BackupViewModel)
     viewModel { params -> SharedScheduleViewModel(params.get(), params.get(), get(), get(), get(), get()) }
     viewModelOf(::StatsViewModel)
     viewModelOf(::DebtsViewModel)

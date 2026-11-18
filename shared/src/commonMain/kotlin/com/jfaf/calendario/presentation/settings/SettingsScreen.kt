@@ -52,6 +52,12 @@ import com.jfaf.calendario.presentation.social.SocialActions
 import com.jfaf.calendario.presentation.social.SocialSection
 import com.jfaf.calendario.presentation.social.SocialUiState
 import com.jfaf.calendario.presentation.social.SocialViewModel
+import com.jfaf.calendario.presentation.backup.BackupConfirmDialog
+import com.jfaf.calendario.presentation.backup.BackupFileIo
+import com.jfaf.calendario.presentation.backup.BackupSection
+import com.jfaf.calendario.presentation.backup.BackupUiState
+import com.jfaf.calendario.presentation.backup.BackupViewModel
+import com.jfaf.calendario.presentation.backup.LocalBackupFileIo
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
@@ -114,6 +120,9 @@ fun SettingsScreen(
     val style by viewModel.appStyle.collectAsState()
     val reminder by viewModel.reminder.collectAsState()
     val social by socialViewModel.uiState.collectAsState()
+    val backupViewModel: BackupViewModel = koinViewModel()
+    val backup by backupViewModel.uiState.collectAsState()
+    val backupIo = LocalBackupFileIo.current
     val socialActions = remember(socialViewModel, onOpenShared) {
         SocialActions(
             onSaveAlias = socialViewModel::saveAlias,
@@ -134,6 +143,11 @@ fun SettingsScreen(
         viewModel::onThemeModeSelected, viewModel::onAppStyleSelected, account, accountActions,
         reminder, viewModel::onReminderEnabledChange, viewModel::onReminderTimeSelected,
         social = social, socialActions = socialActions, signedIn = account.auth is AuthState.SignedIn,
+        backup = backup, backupIo = backupIo,
+        onBackupExport = { backupIo?.let(backupViewModel::exportAll) },
+        onBackupImport = { backupIo?.let(backupViewModel::pickImport) },
+        onBackupConfirm = backupViewModel::confirmImport,
+        onBackupCancel = backupViewModel::cancelImport,
     )
 }
 
@@ -153,6 +167,12 @@ fun SettingsContent(
     social: SocialUiState = SocialUiState(),
     socialActions: SocialActions = SocialActions(),
     signedIn: Boolean = false,
+    backup: BackupUiState = BackupUiState(),
+    backupIo: BackupFileIo? = null,
+    onBackupExport: () -> Unit = {},
+    onBackupImport: () -> Unit = {},
+    onBackupConfirm: () -> Unit = {},
+    onBackupCancel: () -> Unit = {},
 ) {
     Scaffold(
         topBar = {
@@ -173,6 +193,9 @@ fun SettingsContent(
             AccountSection(account, accountActions)
 
             SocialSection(state = social, signedIn = signedIn, actions = socialActions)
+
+            BackupSection(backup, backupIo, onBackupExport, onBackupImport)
+            BackupConfirmDialog(backup.pendingImport, onBackupConfirm, onBackupCancel)
 
             if (reminder.supported) ReminderSection(reminder, onReminderEnabledChange, onReminderTimeSelected)
 

@@ -27,6 +27,7 @@ class MainActivity : ComponentActivity() {
     private val observeAuth: ObserveAuthStateUseCase by inject()
     private val pushRegistration: PushRegistration by inject()
     private val notificationPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
+    private val backupIo = com.jfaf.calendario.backup.AndroidBackupFileIo(this)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen() // antes de super.onCreate: pasa de Theme.Calendario.Starting a Theme.Calendario
@@ -41,7 +42,7 @@ class MainActivity : ComponentActivity() {
             observeAuth().filterIsInstance<AuthState.SignedIn>().collect { pushRegistration.register() }
         }
         setContent {
-            App(onDarkThemeChanged = { dark ->
+            App(backupIo = backupIo, onDarkThemeChanged = { dark ->
                 // Iconos de las barras del sistema legibles según el tema elegido en la app (no sólo el del sistema).
                 val style = if (dark) SystemBarStyle.dark(Color.TRANSPARENT)
                 else SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)

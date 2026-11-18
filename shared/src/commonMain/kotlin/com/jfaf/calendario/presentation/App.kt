@@ -5,6 +5,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import com.jfaf.calendario.presentation.theme.CalendarioTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import com.jfaf.calendario.presentation.backup.BackupFileIo
+import com.jfaf.calendario.presentation.backup.LocalBackupFileIo
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -43,7 +46,14 @@ data class SharedRoute(val ownerId: String, val alias: String)
  * `onDarkThemeChanged` avisa a la plataforma del tema efectivo (Android lo usa para el color de los iconos de las barras).
  */
 @Composable
-fun App(onDarkThemeChanged: (Boolean) -> Unit = {}) {
+fun App(backupIo: BackupFileIo? = null, onDarkThemeChanged: (Boolean) -> Unit = {}) {
+    CompositionLocalProvider(LocalBackupFileIo provides backupIo) {
+        AppContent(onDarkThemeChanged)
+    }
+}
+
+@Composable
+private fun AppContent(onDarkThemeChanged: (Boolean) -> Unit) {
     val settings: SettingsViewModel = koinViewModel()
     val mode by settings.themeMode.collectAsState()
     val style by settings.appStyle.collectAsState()
