@@ -222,6 +222,8 @@
     <string name="social_revoke">Quitar</string>
     <string name="social_chip">Solicitudes: %1$d</string>
     <string name="social_view_calendar">Ver turnos</string>
+    <string name="social_blocked_title">Bloqueados</string>
+    <string name="social_unblock">Desbloquear</string>
     <string name="swap_hint">Toca un turno para proponer un cambio.</string>
     <string name="swap_preview_title">Así quedaría tu calendario</string>
     <string name="swap_before_after">Antes: %1$s → después: %2$s</string>

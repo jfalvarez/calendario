@@ -1,5 +1,6 @@
 package com.jfaf.calendario.domain.repository
 
+import com.jfaf.calendario.domain.model.BlockedUser
 import com.jfaf.calendario.domain.model.CalendarMonth
 import com.jfaf.calendario.domain.model.LinkRequestResult
 import com.jfaf.calendario.domain.model.LinkSummary
@@ -63,4 +64,10 @@ interface SocialRepository {
 
     /** Bloquea a quien me pidió un vínculo: corta el vínculo y evita nuevas solicitudes suyas. */
     suspend fun blockRequester(linkId: String): Result<Unit>
+
+    /** Personas a las que he bloqueado. */
+    suspend fun blockedUsers(): Result<List<BlockedUser>>
+
+    /** Quita el bloqueo: la persona puede volver a pedir vínculo. No restaura vínculos anteriores. */
+    suspend fun unblock(blockedId: String): Result<Unit>
 }

@@ -3,6 +3,7 @@ package com.jfaf.calendario.presentation.social
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jfaf.calendario.domain.model.AuthState
+import com.jfaf.calendario.domain.model.BlockedUser
 import com.jfaf.calendario.domain.model.LinkRequestResult
 import com.jfaf.calendario.domain.model.LinkSummary
 import com.jfaf.calendario.domain.model.PendingRequest
@@ -30,6 +31,8 @@ data class SocialUiState(
     val links: List<LinkSummary> = emptyList(),
     /** Propuestas de cambio de turno: las que me han hecho y las mías. */
     val swaps: List<SwapProposal> = emptyList(),
+    /** Personas bloqueadas por mí; se pueden desbloquear desde Ajustes. */
+    val blocked: List<BlockedUser> = emptyList(),
     val busy: Boolean = false,
     /** Error de la última acción; null si fue bien. */
     val error: SocialError? = null,
@@ -62,7 +65,8 @@ class SocialViewModel(
             val pending = social.pendingRequests().getOrDefault(emptyList())
             val links = social.myLinks().getOrDefault(emptyList())
             val swaps = social.mySwaps().getOrDefault(emptyList())
-            state.update { it.copy(myAlias = alias, pending = pending, links = links, swaps = swaps) }
+            val blocked = social.blockedUsers().getOrDefault(emptyList())
+            state.update { it.copy(myAlias = alias, pending = pending, links = links, swaps = swaps, blocked = blocked) }
         }
     }
 
@@ -95,6 +99,7 @@ class SocialViewModel(
     fun accept(linkId: String) = perform { social.acceptRequest(linkId) }
     fun reject(linkId: String) = perform { social.rejectRequest(linkId) }
     fun block(linkId: String) = perform { social.blockRequester(linkId) }
+    fun unblock(blockedId: String) = perform { social.unblock(blockedId) }
     fun revoke(linkId: String) = perform { social.revokeLink(linkId) }
 
     /** Aceptar o rechazar una propuesta que me han hecho. Al aceptar, el servidor cambia los dos calendarios. */

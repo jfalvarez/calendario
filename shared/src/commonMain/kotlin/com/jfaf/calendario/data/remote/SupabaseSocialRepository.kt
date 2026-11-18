@@ -1,5 +1,6 @@
 package com.jfaf.calendario.data.remote
 
+import com.jfaf.calendario.domain.model.BlockedUser
 import com.jfaf.calendario.domain.model.CalendarMonth
 import com.jfaf.calendario.domain.model.LinkDirection
 import com.jfaf.calendario.domain.model.LinkRequestResult
@@ -59,6 +60,13 @@ internal data class RemoteSharedAssignment(
     @SerialName("break_minutes") val breakMinutes: Int = 0,
 )
 
+/** Fila de `public.list_blocked()`. */
+@Serializable
+internal data class RemoteBlocked(
+    @SerialName("blocked_id") val blockedId: String,
+    @SerialName("blocked_alias") val blockedAlias: String? = null,
+)
+
 /** Fila de `public.list_my_swaps()`. */
 @Serializable
 internal data class RemoteSwap(
@@ -114,6 +122,15 @@ class SupabaseSocialRepository(private val client: SupabaseClient) : SocialRepos
     override suspend fun acceptRequest(linkId: String): Result<Unit> = setStatus(linkId, "accepted")
     override suspend fun rejectRequest(linkId: String): Result<Unit> = setStatus(linkId, "rejected")
     override suspend fun revokeLink(linkId: String): Result<Unit> = setStatus(linkId, "revoked")
+
+    override suspend fun blockedUsers(): Result<List<BlockedUser>> = call {
+        client.postgrest.rpc("list_blocked").decodeList<RemoteBlocked>()
+            .map { BlockedUser(it.blockedId, it.blockedAlias) }
+    }
+
+    override suspend fun unblock(blockedId: String): Result<Unit> = call {
+        client.postgrest.rpc("unblock_requester", buildJsonObject { put("p_blocked", blockedId) })
+    }
 
     override suspend fun blockRequester(linkId: String): Result<Unit> = call {
         client.postgrest.rpc("block_requester", buildJsonObject { put("p_link", linkId) })

@@ -126,6 +126,7 @@ fun SettingsScreen(
             onOpenShared = onOpenShared,
             onRespondSwap = socialViewModel::respondSwap,
             onCancelSwap = socialViewModel::cancelSwap,
+            onUnblock = socialViewModel::unblock,
         )
     }
     SettingsContent(

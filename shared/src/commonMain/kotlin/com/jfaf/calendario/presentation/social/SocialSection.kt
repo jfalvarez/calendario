@@ -36,6 +36,7 @@ class SocialActions(
     val onOpenShared: (ownerId: String, alias: String) -> Unit = { _, _ -> },
     val onRespondSwap: (swapId: String, accept: Boolean) -> Unit = { _, _ -> },
     val onCancelSwap: (String) -> Unit = {},
+    val onUnblock: (String) -> Unit = {},
 )
 
 /** Sección de Ajustes: mi alias, pedir un vínculo, solicitudes pendientes y vínculos actuales. */
@@ -128,6 +129,22 @@ fun SocialSection(state: SocialUiState, signedIn: Boolean, actions: SocialAction
                                 Text(stringResource(Res.string.social_revoke))
                             }
                         }
+                    }
+                }
+            }
+        }
+
+        if (state.blocked.isNotEmpty()) {
+            Text(stringResource(Res.string.social_blocked_title), style = MaterialTheme.typography.titleSmall)
+            state.blocked.forEach { blocked ->
+                Row(
+                    Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text(blocked.alias ?: "—")
+                    TextButton(onClick = { actions.onUnblock(blocked.id) }, enabled = !state.busy) {
+                        Text(stringResource(Res.string.social_unblock))
                     }
                 }
             }

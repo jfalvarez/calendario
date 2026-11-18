@@ -80,3 +80,6 @@ fun SwapProposal.previewForMe(): List<SwapDayPreview> {
         SwapDayPreview(receiveDate, receiveSlot, before = null, after = receiveShift ?: "—"),
     )
 }
+
+/** Persona bloqueada por mí. `alias` puede ser null si nunca eligió alias. */
+data class BlockedUser(val id: String, val alias: String?)
