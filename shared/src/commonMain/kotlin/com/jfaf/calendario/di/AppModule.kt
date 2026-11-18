@@ -51,6 +51,9 @@ import com.jfaf.calendario.domain.usecase.ObserveAuthStateUseCase
 import com.jfaf.calendario.domain.usecase.ObserveSyncStateUseCase
 import com.jfaf.calendario.domain.usecase.RequestSyncUseCase
 import com.jfaf.calendario.domain.usecase.SignInUseCase
+import com.jfaf.calendario.domain.usecase.RequestPasswordResetUseCase
+import com.jfaf.calendario.domain.usecase.CompletePasswordResetUseCase
+import com.jfaf.calendario.domain.usecase.ChangePasswordUseCase
 import com.jfaf.calendario.domain.usecase.SignOutUseCase
 import com.jfaf.calendario.domain.usecase.SignUpUseCase
 import com.jfaf.calendario.domain.usecase.ClearDaysUseCase
@@ -145,6 +148,9 @@ val domainModule = module {
     factory { SignInUseCase(get()) }
     factory { SignUpUseCase(get()) }
     factory { SignOutUseCase(get()) }
+    factory { RequestPasswordResetUseCase(get()) }
+    factory { CompletePasswordResetUseCase(get()) }
+    factory { ChangePasswordUseCase(get()) }
     factory { ObserveAuthStateUseCase(get()) }
     factory { ObserveSyncStateUseCase(get()) }
     factory { RequestSyncUseCase(get()) }

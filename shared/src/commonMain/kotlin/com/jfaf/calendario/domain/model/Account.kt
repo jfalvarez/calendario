@@ -11,6 +11,13 @@ sealed interface AuthState {
 enum class AuthError {
     InvalidEmail, WeakPassword, InvalidCredentials, EmailAlreadyUsed, Network, Unknown,
 
+    /** El código de recuperación es incorrecto o ha caducado. */
+    InvalidCode,
+    /** Las dos contraseñas nuevas no coinciden. */
+    PasswordMismatch,
+    /** Demasiados correos o intentos seguidos: hay que esperar. */
+    TooManyRequests,
+
     /** La cuenta se creó pero hay que confirmar el correo antes de poder iniciar sesión. */
     EmailConfirmationRequired,
 }

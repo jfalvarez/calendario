@@ -85,8 +85,22 @@ fun SettingsScreen(
     val account by accountViewModel.uiState.collectAsState()
     val accountActions = remember(accountViewModel) {
         AccountActions(
-            accountViewModel::onEmailChange, accountViewModel::onPasswordChange, accountViewModel::onSignIn,
-            accountViewModel::onSignUp, accountViewModel::onSignOut, accountViewModel::onSyncNow,
+            onEmailChange = accountViewModel::onEmailChange,
+            onPasswordChange = accountViewModel::onPasswordChange,
+            onCodeChange = accountViewModel::onCodeChange,
+            onNewPasswordChange = accountViewModel::onNewPasswordChange,
+            onRepeatPasswordChange = accountViewModel::onRepeatPasswordChange,
+            onSignIn = accountViewModel::onSignIn,
+            onSignUp = accountViewModel::onSignUp,
+            onSignOut = accountViewModel::onSignOut,
+            onSyncNow = accountViewModel::onSyncNow,
+            onForgotPassword = accountViewModel::onForgotPassword,
+            onBackToSignIn = accountViewModel::onBackToSignIn,
+            onSendCode = accountViewModel::onSendCode,
+            onResetPassword = accountViewModel::onResetPassword,
+            onStartChangePassword = accountViewModel::onStartChangePassword,
+            onCancelChangePassword = accountViewModel::onCancelChangePassword,
+            onSaveNewPassword = accountViewModel::onSaveNewPassword,
         )
     }
     val mode by viewModel.themeMode.collectAsState()

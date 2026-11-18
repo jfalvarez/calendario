@@ -4,6 +4,7 @@ import com.jfaf.calendario.domain.model.AuthError
 import com.jfaf.calendario.domain.model.AuthState
 import com.jfaf.calendario.domain.repository.AuthRepository
 import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.auth.OtpType
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.builtin.Email
 import io.github.jan.supabase.auth.status.SessionStatus
@@ -36,6 +37,18 @@ class SupabaseAuthRepository(private val client: SupabaseClient) : AuthRepositor
         call { client.auth.signUpWith(Email) { this.email = email; this.password = password } }
             ?: if (client.auth.currentSessionOrNull() == null) AuthError.EmailConfirmationRequired else null
 
+    override suspend fun sendPasswordReset(email: String): AuthError? = call {
+        client.auth.resetPasswordForEmail(email)
+    }
+
+    override suspend fun verifyRecoveryCode(email: String, code: String): AuthError? = call {
+        client.auth.verifyEmailOtp(OtpType.Email.RECOVERY, email, code)
+    }
+
+    override suspend fun updatePassword(newPassword: String): AuthError? = call {
+        client.auth.updateUser { password = newPassword }
+    }
+
     override suspend fun signOut() {
         try {
             client.auth.signOut()
@@ -67,6 +80,8 @@ internal fun mapRestError(error: String, description: String?): AuthError {
         "already" in text && ("registered" in text || "exists" in text) -> AuthError.EmailAlreadyUsed
         "weak_password" in text || "password should be" in text -> AuthError.WeakPassword
         "email_address_invalid" in text || "unable to validate email" in text || "invalid email" in text -> AuthError.InvalidEmail
+        "otp_expired" in text || "token has expired" in text || "token is invalid" in text || "invalid otp" in text -> AuthError.InvalidCode
+        "rate_limit" in text || "rate limit" in text || "for security purposes" in text -> AuthError.TooManyRequests
         else -> AuthError.Unknown
     }
 }

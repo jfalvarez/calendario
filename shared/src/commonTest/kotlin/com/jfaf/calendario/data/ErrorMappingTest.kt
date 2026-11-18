@@ -15,6 +15,8 @@ class ErrorMappingTest {
         assertEquals(AuthError.EmailAlreadyUsed, mapRestError("user_already_exists", "User already registered"))
         assertEquals(AuthError.WeakPassword, mapRestError("weak_password", "Password should be at least 6 characters"))
         assertEquals(AuthError.InvalidEmail, mapRestError("email_address_invalid", "Email address is invalid"))
+        assertEquals(AuthError.InvalidCode, mapRestError("otp_expired", "Token has expired or is invalid"))
+        assertEquals(AuthError.TooManyRequests, mapRestError("over_email_send_rate_limit", "Email rate limit exceeded"))
         assertEquals(AuthError.Unknown, mapRestError("otro", null))
     }
 

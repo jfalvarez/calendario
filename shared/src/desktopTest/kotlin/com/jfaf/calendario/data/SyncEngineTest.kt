@@ -123,6 +123,9 @@ private class Device(remote: FakeRemote) {
             override suspend fun signIn(email: String, password: String) = null
             override suspend fun signUp(email: String, password: String) = null
             override suspend fun signOut() {}
+            override suspend fun sendPasswordReset(email: String) = null
+            override suspend fun verifyRecoveryCode(email: String, code: String) = null
+            override suspend fun updatePassword(newPassword: String) = null
         },
         createPreferencesDataStore(prefsFile.absolutePath, scope), scope,
     )
@@ -271,6 +274,9 @@ class ForegroundSyncTest {
             override suspend fun signIn(email: String, password: String) = null
             override suspend fun signUp(email: String, password: String) = null
             override suspend fun signOut() {}
+            override suspend fun sendPasswordReset(email: String) = null
+            override suspend fun verifyRecoveryCode(email: String, code: String) = null
+            override suspend fun updatePassword(newPassword: String) = null
         }
         val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
         val prefsFile = File.createTempFile("foreground", ".preferences_pb").also { it.delete() }
