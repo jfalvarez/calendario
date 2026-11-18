@@ -1,11 +1,14 @@
 package com.jfaf.calendario.data
 
 import com.jfaf.calendario.data.remote.RemoteAppConfig
+import com.jfaf.calendario.data.remote.isSafeStoreUrl
 import com.jfaf.calendario.data.remote.toPolicy
 import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class AppConfigMappingTest {
     private val json = Json { ignoreUnknownKeys = true }
@@ -31,5 +34,16 @@ class AppConfigMappingTest {
         assertNull(policy.message)
         assertNull(policy.storeUrl)
         assertNull(json.decodeFromString<RemoteAppConfig>("""{"platform":"desktop","min_version_code":1,"recommended_version_code":1}""").toPolicy().message)
+    }
+
+    @Test
+    fun soloSeAceptanEnlacesHttpsOMarket() {
+        assertTrue(isSafeStoreUrl("https://play.google.com/store/apps/details?id=x"))
+        assertTrue(isSafeStoreUrl("market://details?id=x"))
+        assertFalse(isSafeStoreUrl("http://evil.example"))
+        assertFalse(isSafeStoreUrl("file:///C:/Windows/System32/calc.exe"))
+        assertFalse(isSafeStoreUrl("intent://x#Intent;end"))
+        assertFalse(isSafeStoreUrl("javascript:alert(1)"))
+        assertFalse(isSafeStoreUrl("https://"))
     }
 }

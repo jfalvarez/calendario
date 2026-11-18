@@ -9,7 +9,9 @@ import com.jfaf.calendario.data.local.buildCalendarDatabase
 import com.jfaf.calendario.data.prefs.USER_PREFERENCES_FILE
 import com.jfaf.calendario.data.prefs.createPreferencesDataStore
 import com.jfaf.calendario.data.remote.AppPlatform
+import com.jfaf.calendario.data.remote.FileSessionManager
 import com.jfaf.calendario.data.remote.SupabaseConfig
+import io.github.jan.supabase.auth.SessionManager
 import com.jfaf.calendario.domain.repository.AppVersionProvider
 import com.jfaf.calendario.domain.repository.ErrorReporter
 import com.jfaf.calendario.presentation.settings.ReminderSystem
@@ -55,6 +57,8 @@ fun desktopModule(dataDir: File = appDataDir()) = module {
         )
     }
     single { loadSupabaseConfig() }
+    // La sesión de Supabase va a un archivo privado del usuario, no al registro de Windows (java.util.prefs).
+    single<SessionManager> { FileSessionManager(File(dataDir, "session.json")) }
     single { AppPlatform("desktop") }
     single<ErrorReporter> { SentryErrorReporter() }
     // Los avisos de turno son sólo del móvil: en escritorio la sección se oculta.

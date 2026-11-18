@@ -50,6 +50,9 @@ language plpgsql
 set search_path = ''
 as $$
 begin
+  -- updated_at lo pone el cliente: se limita a «ahora + 5 min» para que un reloj adelantado (o un valor manipulado)
+  -- no deje la fila congelada ignorando para siempre las ediciones posteriores.
+  new.updated_at := least(new.updated_at, (extract(epoch from now()) * 1000)::bigint + 300000);
   if tg_op = 'UPDATE' and new.updated_at < old.updated_at then
     return old; -- versión obsoleta: se conserva la que ya había
   end if;
@@ -182,3 +185,20 @@ create policy day_notes_insert on public.day_notes for insert to authenticated
   with check (owner_id = (select auth.uid()));
 create policy day_notes_update on public.day_notes for update to authenticated
   using (owner_id = (select auth.uid())) with check (owner_id = (select auth.uid()));
+
+-- ---------------------------------------------------------------------------
+-- Límites de tamaño en el servidor. La app ya valida (notas 500, persona 40, abreviatura 3), pero un cliente
+-- manipulado con la clave pública podría subir filas enormes y agotar la cuota. Holgados a propósito.
+-- `not valid`: sólo se exigen a las filas nuevas o modificadas (no revisa las existentes, así no falla al re-ejecutar).
+-- ---------------------------------------------------------------------------
+alter table public.shifts drop constraint if exists shifts_name_len;
+alter table public.shifts add constraint shifts_name_len
+  check (char_length(name) <= 100 and char_length(abbreviation) <= 10) not valid;
+
+alter table public.shift_assignments drop constraint if exists assignments_shift_id_len;
+alter table public.shift_assignments add constraint assignments_shift_id_len
+  check (char_length(id) <= 64 and char_length(shift_id) <= 64) not valid;
+
+alter table public.day_notes drop constraint if exists day_notes_len;
+alter table public.day_notes add constraint day_notes_len
+  check (char_length(body) <= 1000 and char_length(coalesce(person, '')) <= 80 and char_length(id) <= 64) not valid;
