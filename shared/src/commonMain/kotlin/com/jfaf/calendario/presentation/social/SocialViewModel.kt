@@ -6,6 +6,7 @@ import com.jfaf.calendario.domain.model.AuthState
 import com.jfaf.calendario.domain.model.LinkRequestResult
 import com.jfaf.calendario.domain.model.LinkSummary
 import com.jfaf.calendario.domain.model.PendingRequest
+import com.jfaf.calendario.domain.model.SwapProposal
 import com.jfaf.calendario.domain.model.isValidAlias
 import com.jfaf.calendario.domain.repository.SocialError
 import com.jfaf.calendario.domain.repository.SocialException
@@ -27,6 +28,8 @@ data class SocialUiState(
     /** Solicitudes pendientes de mi respuesta (banner de la pantalla principal). */
     val pending: List<PendingRequest> = emptyList(),
     val links: List<LinkSummary> = emptyList(),
+    /** Propuestas de cambio de turno: las que me han hecho y las mías. */
+    val swaps: List<SwapProposal> = emptyList(),
     val busy: Boolean = false,
     /** Error de la última acción; null si fue bien. */
     val error: SocialError? = null,
@@ -58,7 +61,8 @@ class SocialViewModel(
             val alias = social.myAlias().getOrNull()
             val pending = social.pendingRequests().getOrDefault(emptyList())
             val links = social.myLinks().getOrDefault(emptyList())
-            state.update { it.copy(myAlias = alias, pending = pending, links = links) }
+            val swaps = social.mySwaps().getOrDefault(emptyList())
+            state.update { it.copy(myAlias = alias, pending = pending, links = links, swaps = swaps) }
         }
     }
 
@@ -92,6 +96,10 @@ class SocialViewModel(
     fun reject(linkId: String) = perform { social.rejectRequest(linkId) }
     fun block(linkId: String) = perform { social.blockRequester(linkId) }
     fun revoke(linkId: String) = perform { social.revokeLink(linkId) }
+
+    /** Aceptar o rechazar una propuesta que me han hecho. Al aceptar, el servidor cambia los dos calendarios. */
+    fun respondSwap(swapId: String, accept: Boolean) = perform { social.respondSwap(swapId, accept) }
+    fun cancelSwap(swapId: String) = perform { social.cancelSwap(swapId) }
 
     /** Borra avisos de la última acción, por ejemplo al volver a escribir en el campo. */
     fun clearMessages() = state.update {

@@ -5,9 +5,15 @@ import com.jfaf.calendario.domain.model.LinkRequestResult
 import com.jfaf.calendario.domain.model.LinkSummary
 import com.jfaf.calendario.domain.model.PendingRequest
 import com.jfaf.calendario.domain.model.SharedAssignment
+import com.jfaf.calendario.domain.model.SwapProposal
+import kotlinx.datetime.LocalDate
 
 /** Errores de dominio de las operaciones sociales. `Unknown` cubre fallos no esperados. */
-enum class SocialError { AliasTaken, AliasLocked, InvalidAlias, NotAuthenticated, InvalidTransition, Forbidden, LinkNotFound, Network, Unknown }
+enum class SocialError {
+    AliasTaken, AliasLocked, InvalidAlias, NotAuthenticated, InvalidTransition, Forbidden, LinkNotFound,
+    ShiftMissing, AssignmentMissing, AssignmentChanged, TargetBusy, ProposerBusy, LinkRevoked, SwapNotFound,
+    Network, Unknown,
+}
 
 /** Error de dominio envuelto en `Result.failure`. */
 class SocialException(val error: SocialError) : Exception(error.name)
@@ -37,6 +43,17 @@ interface SocialRepository {
 
     /** Turnos asignados de un compañero con vínculo aceptado, en el mes indicado. */
     suspend fun sharedSchedule(ownerId: String, month: CalendarMonth): Result<List<SharedAssignment>>
+
+    /** Propone cambiar mi turno del día `proposerDate` por el del compañero en `targetDate`. */
+    suspend fun proposeSwap(targetId: String, proposerDate: LocalDate, proposerSlot: Int, targetDate: LocalDate, targetSlot: Int): Result<Unit>
+
+    /** Acepta (true) o rechaza (false) una propuesta que me han hecho. Al aceptar, se hace el cambio en los dos calendarios. */
+    suspend fun respondSwap(swapId: String, accept: Boolean): Result<Unit>
+
+    /** Cancela una propuesta mía que sigue pendiente. */
+    suspend fun cancelSwap(swapId: String): Result<Unit>
+
+    suspend fun mySwaps(): Result<List<SwapProposal>>
 
     /** Bloquea a quien me pidió un vínculo: corta el vínculo y evita nuevas solicitudes suyas. */
     suspend fun blockRequester(linkId: String): Result<Unit>

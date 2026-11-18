@@ -1,6 +1,7 @@
 package com.jfaf.calendario.presentation.social
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -32,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.jfaf.calendario.domain.model.SharedAssignment
+import com.jfaf.calendario.presentation.social.ProposeSwapDialog
 import com.jfaf.calendario.resources.*
 import kotlinx.datetime.LocalDate
 import org.koin.compose.viewmodel.koinViewModel
@@ -66,6 +68,14 @@ fun SharedScheduleScreen(
         },
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp)) {
+            state.proposal?.let { draft ->
+                ProposeSwapDialog(
+                    draft = draft,
+                    onSelect = viewModel::selectOption,
+                    onSend = viewModel::sendProposal,
+                    onDismiss = viewModel::closeProposal,
+                )
+            }
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = viewModel::onPreviousMonth) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(Res.string.previous_month))
@@ -95,11 +105,16 @@ fun SharedScheduleScreen(
                     modifier = Modifier.padding(top = 16.dp),
                 )
                 else -> {
+                    Text(
+                        stringResource(Res.string.swap_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(vertical = 4.dp),
+                    )
                     val byDate = state.assignments.groupBy { it.date }.toSortedMap()
                     LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         byDate.forEach { (date, dayAssignments) ->
                             item(key = date.toString()) {
-                                DayBlock(date, dayAssignments, weekdays[date.dayOfWeek.ordinal])
+                                DayBlock(date, dayAssignments, weekdays[date.dayOfWeek.ordinal], viewModel::openProposal)
                             }
                         }
                     }
@@ -110,17 +125,17 @@ fun SharedScheduleScreen(
 }
 
 @Composable
-private fun DayBlock(date: LocalDate, assignments: List<SharedAssignment>, weekday: String) {
+private fun DayBlock(date: LocalDate, assignments: List<SharedAssignment>, weekday: String, onPropose: (SharedAssignment) -> Unit) {
     Column(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text("$weekday ${date.day}", style = MaterialTheme.typography.titleSmall)
-        assignments.sortedBy { it.slot }.forEach { ShiftLine(it) }
+        assignments.sortedBy { it.slot }.forEach { ShiftLine(it, onPropose) }
         HorizontalDivider(Modifier.padding(top = 4.dp))
     }
 }
 
 @Composable
-private fun ShiftLine(a: SharedAssignment) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+private fun ShiftLine(a: SharedAssignment, onPropose: (SharedAssignment) -> Unit) {
+    Row(Modifier.fillMaxWidth().clickable { onPropose(a) }.padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Box(Modifier.size(12.dp).background(Color(a.colorArgb.toInt()), CircleShape))
         Text(a.shiftName + (a.timeRange()?.let { " · $it" } ?: ""))
     }

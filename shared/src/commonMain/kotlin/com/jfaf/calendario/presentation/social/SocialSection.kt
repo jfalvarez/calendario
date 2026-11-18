@@ -34,6 +34,8 @@ class SocialActions(
     val onBlock: (String) -> Unit = {},
     val onRevoke: (String) -> Unit = {},
     val onOpenShared: (ownerId: String, alias: String) -> Unit = { _, _ -> },
+    val onRespondSwap: (swapId: String, accept: Boolean) -> Unit = { _, _ -> },
+    val onCancelSwap: (String) -> Unit = {},
 )
 
 /** Sección de Ajustes: mi alias, pedir un vínculo, solicitudes pendientes y vínculos actuales. */
@@ -130,6 +132,14 @@ fun SocialSection(state: SocialUiState, signedIn: Boolean, actions: SocialAction
                 }
             }
         }
+
+        SwapList(
+            swaps = state.swaps,
+            busy = state.busy,
+            onAccept = { actions.onRespondSwap(it, true) },
+            onReject = { actions.onRespondSwap(it, false) },
+            onCancel = actions.onCancelSwap,
+        )
 
         state.error?.let { Text(stringResource(errorText(it)), color = MaterialTheme.colorScheme.error) }
     }

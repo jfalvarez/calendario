@@ -20,6 +20,8 @@ create table if not exists public.shift_swaps (
   proposer_slot   smallint not null check (proposer_slot in (0, 1)),
   target_date     date not null,
   target_slot     smallint not null check (target_slot in (0, 1)),
+  proposer_shift_name text,
+  target_shift_name   text,
   status          text not null default 'pending'
                   check (status in ('pending', 'accepted', 'rejected', 'cancelled')),
   created_at      timestamptz not null default now(),
@@ -45,6 +47,8 @@ as $$
 declare
   me uuid := (select auth.uid());
   new_id uuid;
+  pname text;
+  tname text;
 begin
   if me is null then raise exception 'not_authenticated'; end if;
   if me = p_target then raise exception 'self_swap'; end if;
@@ -71,8 +75,33 @@ begin
     raise exception 'assignment_missing';
   end if;
 
-  insert into public.shift_swaps (proposer_id, target_id, proposer_date, proposer_slot, target_date, target_slot)
-  values (me, p_target, p_proposer_date, p_proposer_slot, p_target_date, p_target_slot)
+  -- Cada turno que se entrega debe existir también en la cuenta que lo recibe. Si no, se rechaza ya aquí.
+  if not exists (select 1 from public.shifts sh
+                  where sh.owner_id = p_target and sh.deleted_at is null
+                    and sh.id = (select a.shift_id from public.shift_assignments a
+                                  where a.owner_id = me and a.assignment_date = p_proposer_date
+                                    and a.slot = p_proposer_slot and a.deleted_at is null)) then
+    raise exception 'shift_missing';
+  end if;
+  if not exists (select 1 from public.shifts sh
+                  where sh.owner_id = me and sh.deleted_at is null
+                    and sh.id = (select b.shift_id from public.shift_assignments b
+                                  where b.owner_id = p_target and b.assignment_date = p_target_date
+                                    and b.slot = p_target_slot and b.deleted_at is null)) then
+    raise exception 'shift_missing';
+  end if;
+
+  -- Nombres de los turnos al proponer: así la vista previa no depende de lo que el otro pueda ver.
+  select sh.name into pname from public.shift_assignments a
+    join public.shifts sh on sh.owner_id = a.owner_id and sh.id = a.shift_id and sh.deleted_at is null
+   where a.owner_id = me and a.assignment_date = p_proposer_date and a.slot = p_proposer_slot and a.deleted_at is null;
+  select sh.name into tname from public.shift_assignments a
+    join public.shifts sh on sh.owner_id = a.owner_id and sh.id = a.shift_id and sh.deleted_at is null
+   where a.owner_id = p_target and a.assignment_date = p_target_date and a.slot = p_target_slot and a.deleted_at is null;
+
+  insert into public.shift_swaps (proposer_id, target_id, proposer_date, proposer_slot, target_date, target_slot,
+                                  proposer_shift_name, target_shift_name)
+  values (me, p_target, p_proposer_date, p_proposer_slot, p_target_date, p_target_slot, pname, tname)
   returning id into new_id;
 
   return new_id;
@@ -193,14 +222,16 @@ $$;
 -- ---------------------------------------------------------------------------
 create or replace function public.list_my_swaps()
 returns table (
-  swap_id         uuid,
-  direction       text,
-  other_alias     text,
-  proposer_date   date,
-  proposer_slot   smallint,
-  target_date     date,
-  target_slot     smallint,
-  status          text
+  swap_id           uuid,
+  direction         text,
+  other_alias       text,
+  proposer_date     date,
+  proposer_slot     smallint,
+  proposer_shift    text,
+  target_date       date,
+  target_slot       smallint,
+  target_shift      text,
+  status            text
 )
 language plpgsql
 security definer
@@ -214,7 +245,8 @@ begin
     select s.id,
            (case when s.proposer_id = me then 'outgoing' else 'incoming' end)::text,
            pr.alias,
-           s.proposer_date, s.proposer_slot, s.target_date, s.target_slot, s.status
+           s.proposer_date, s.proposer_slot, s.proposer_shift_name,
+           s.target_date, s.target_slot, s.target_shift_name, s.status
       from public.shift_swaps s
       join public.profiles pr
         on pr.owner_id = (case when s.proposer_id = me then s.target_id else s.proposer_id end)

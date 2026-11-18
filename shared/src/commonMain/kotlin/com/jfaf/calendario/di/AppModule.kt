@@ -183,7 +183,7 @@ val presentationModule = module {
     viewModelOf(::SettingsViewModel)
     viewModelOf(::AccountViewModel)
     viewModelOf(::SocialViewModel)
-    viewModel { params -> SharedScheduleViewModel(params.get(), params.get(), get(), get()) }
+    viewModel { params -> SharedScheduleViewModel(params.get(), params.get(), get(), get(), get(), get()) }
     viewModelOf(::StatsViewModel)
     viewModelOf(::DebtsViewModel)
     viewModel { UpdateViewModel(get(), get(), get(), get<AppForegroundEvents>().events) }

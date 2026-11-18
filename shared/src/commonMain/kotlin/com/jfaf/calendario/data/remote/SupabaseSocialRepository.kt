@@ -7,6 +7,8 @@ import com.jfaf.calendario.domain.model.LinkStatus
 import com.jfaf.calendario.domain.model.LinkSummary
 import com.jfaf.calendario.domain.model.PendingRequest
 import com.jfaf.calendario.domain.model.SharedAssignment
+import com.jfaf.calendario.domain.model.SwapProposal
+import com.jfaf.calendario.domain.model.SwapStatus
 import com.jfaf.calendario.domain.repository.SocialError
 import com.jfaf.calendario.domain.repository.SocialException
 import com.jfaf.calendario.domain.repository.SocialRepository
@@ -55,6 +57,21 @@ internal data class RemoteSharedAssignment(
     @SerialName("start_minutes") val startMinutes: Int? = null,
     @SerialName("end_minutes") val endMinutes: Int? = null,
     @SerialName("break_minutes") val breakMinutes: Int = 0,
+)
+
+/** Fila de `public.list_my_swaps()`. */
+@Serializable
+internal data class RemoteSwap(
+    @SerialName("swap_id") val swapId: String,
+    val direction: String,
+    @SerialName("other_alias") val otherAlias: String? = null,
+    @SerialName("proposer_date") val proposerDate: String,
+    @SerialName("proposer_slot") val proposerSlot: Int,
+    @SerialName("proposer_shift") val proposerShift: String? = null,
+    @SerialName("target_date") val targetDate: String,
+    @SerialName("target_slot") val targetSlot: Int,
+    @SerialName("target_shift") val targetShift: String? = null,
+    val status: String,
 )
 
 /** Implementación contra Supabase: funciones RPC de `supabase/social.sql`. */
@@ -131,6 +148,49 @@ class SupabaseSocialRepository(private val client: SupabaseClient) : SocialRepos
         breakMinutes = breakMinutes,
     )
 
+    override suspend fun proposeSwap(targetId: String, proposerDate: LocalDate, proposerSlot: Int, targetDate: LocalDate, targetSlot: Int): Result<Unit> = call {
+        client.postgrest.rpc(
+            "propose_swap",
+            buildJsonObject {
+                put("p_target", targetId)
+                put("p_proposer_date", proposerDate.toString())
+                put("p_proposer_slot", proposerSlot)
+                put("p_target_date", targetDate.toString())
+                put("p_target_slot", targetSlot)
+            },
+        )
+    }
+
+    override suspend fun respondSwap(swapId: String, accept: Boolean): Result<Unit> = call {
+        client.postgrest.rpc("respond_swap", buildJsonObject { put("p_swap", swapId); put("p_accept", accept) })
+    }
+
+    override suspend fun cancelSwap(swapId: String): Result<Unit> = call {
+        client.postgrest.rpc("cancel_swap", buildJsonObject { put("p_swap", swapId) })
+    }
+
+    override suspend fun mySwaps(): Result<List<SwapProposal>> = call {
+        client.postgrest.rpc("list_my_swaps").decodeList<RemoteSwap>().map { it.toDomain() }
+    }
+
+    private fun RemoteSwap.toDomain() = SwapProposal(
+        id = swapId,
+        direction = if (direction == "outgoing") LinkDirection.Outgoing else LinkDirection.Incoming,
+        otherAlias = otherAlias,
+        proposerDate = LocalDate.parse(proposerDate),
+        proposerSlot = proposerSlot,
+        proposerShift = proposerShift,
+        targetDate = LocalDate.parse(targetDate),
+        targetSlot = targetSlot,
+        targetShift = targetShift,
+        status = when (status) {
+            "pending" -> SwapStatus.Pending
+            "accepted" -> SwapStatus.Accepted
+            "rejected" -> SwapStatus.Rejected
+            else -> SwapStatus.Cancelled
+        },
+    )
+
     private fun RemoteLink.toDomain() = LinkSummary(
         linkId = linkId,
         direction = if (direction == "incoming") LinkDirection.Incoming else LinkDirection.Outgoing,
@@ -162,6 +222,13 @@ internal fun socialErrorOf(e: Throwable): SocialError {
     return when {
         "alias_taken" in text -> SocialError.AliasTaken
         "alias_locked" in text -> SocialError.AliasLocked
+        "shift_missing" in text -> SocialError.ShiftMissing
+        "assignment_missing" in text -> SocialError.AssignmentMissing
+        "assignment_changed" in text -> SocialError.AssignmentChanged
+        "target_busy" in text -> SocialError.TargetBusy
+        "proposer_busy" in text -> SocialError.ProposerBusy
+        "link_revoked" in text -> SocialError.LinkRevoked
+        "swap_not_found" in text -> SocialError.SwapNotFound
         "invalid_alias" in text -> SocialError.InvalidAlias
         "not_authenticated" in text -> SocialError.NotAuthenticated
         "invalid_transition" in text -> SocialError.InvalidTransition

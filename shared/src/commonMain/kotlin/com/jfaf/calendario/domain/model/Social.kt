@@ -43,3 +43,40 @@ data class SharedAssignment(
     val endMinutes: Int?,
     val breakMinutes: Int,
 )
+
+enum class SwapStatus { Pending, Accepted, Rejected, Cancelled }
+
+/**
+ * Propuesta de cambio de turnos vista desde mi cuenta. `direction` Outgoing: la propuse yo.
+ * Los nombres de los turnos se guardan al proponer, así que la vista previa no depende de lo que el otro pueda ver.
+ */
+data class SwapProposal(
+    val id: String,
+    val direction: LinkDirection,
+    val otherAlias: String?,
+    val proposerDate: LocalDate,
+    val proposerSlot: Int,
+    val proposerShift: String?,
+    val targetDate: LocalDate,
+    val targetSlot: Int,
+    val targetShift: String?,
+    val status: SwapStatus,
+)
+
+/** Un día de mi calendario antes y después del cambio. `before` = turno que tengo; `after` = turno que tendré. */
+data class SwapDayPreview(val date: LocalDate, val slot: Int, val before: String?, val after: String?)
+
+/** Vista previa desde mi lado: lo que entrego pasa a libre, lo que recibo aparece. */
+fun SwapProposal.previewForMe(): List<SwapDayPreview> {
+    val outgoing = direction == LinkDirection.Outgoing
+    val giveDate = if (outgoing) proposerDate else targetDate
+    val giveSlot = if (outgoing) proposerSlot else targetSlot
+    val giveShift = if (outgoing) proposerShift else targetShift
+    val receiveDate = if (outgoing) targetDate else proposerDate
+    val receiveSlot = if (outgoing) targetSlot else proposerSlot
+    val receiveShift = if (outgoing) targetShift else proposerShift
+    return listOf(
+        SwapDayPreview(giveDate, giveSlot, before = giveShift ?: "—", after = null),
+        SwapDayPreview(receiveDate, receiveSlot, before = null, after = receiveShift ?: "—"),
+    )
+}
