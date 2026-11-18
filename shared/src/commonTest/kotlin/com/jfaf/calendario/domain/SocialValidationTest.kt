@@ -37,6 +37,7 @@ class SocialValidationTest {
     fun serverCodesMapToDomainErrors() {
         assertEquals(SocialError.AliasTaken, socialErrorOf(Exception("P0001: alias_taken")))
         assertEquals(SocialError.InvalidAlias, socialErrorOf(Exception("invalid_alias")))
+        assertEquals(SocialError.AliasLocked, socialErrorOf(Exception("alias_locked")))
         assertEquals(SocialError.NotAuthenticated, socialErrorOf(Exception("not_authenticated")))
         assertEquals(SocialError.InvalidTransition, socialErrorOf(Exception("invalid_transition")))
         assertEquals(SocialError.Forbidden, socialErrorOf(Exception("forbidden")))

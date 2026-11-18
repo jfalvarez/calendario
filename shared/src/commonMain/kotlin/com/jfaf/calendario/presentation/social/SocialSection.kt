@@ -48,17 +48,23 @@ fun SocialSection(state: SocialUiState, signedIn: Boolean, actions: SocialAction
             return@Column
         }
 
-        OutlinedTextField(
-            value = aliasInput,
-            onValueChange = { aliasInput = it; actions.onInputChanged() },
-            label = { Text(stringResource(Res.string.social_alias_label)) },
-            supportingText = { Text(stringResource(Res.string.social_alias_hint)) },
-            singleLine = true,
-            isError = state.invalidAliasInput,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Button(onClick = { actions.onSaveAlias(aliasInput) }, enabled = !state.busy) {
-            Text(stringResource(Res.string.social_alias_save))
+        // El alias se fija una sola vez: si ya existe, sólo se muestra (el servidor también lo impide).
+        val myAlias = state.myAlias
+        if (myAlias != null) {
+            Text(stringResource(Res.string.social_alias_current, myAlias), style = MaterialTheme.typography.bodyLarge)
+        } else {
+            OutlinedTextField(
+                value = aliasInput,
+                onValueChange = { aliasInput = it; actions.onInputChanged() },
+                label = { Text(stringResource(Res.string.social_alias_label)) },
+                supportingText = { Text(stringResource(Res.string.social_alias_hint)) },
+                singleLine = true,
+                isError = state.invalidAliasInput,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Button(onClick = { actions.onSaveAlias(aliasInput) }, enabled = !state.busy) {
+                Text(stringResource(Res.string.social_alias_save))
+            }
         }
         if (state.aliasSaved) Text(stringResource(Res.string.social_alias_saved), style = MaterialTheme.typography.bodySmall)
 
@@ -140,6 +146,7 @@ internal fun requestResultText(result: LinkRequestResult) = when (result) {
 internal fun errorText(error: SocialError) = when (error) {
     SocialError.AliasTaken -> Res.string.social_alias_taken
     SocialError.InvalidAlias -> Res.string.social_invalid_alias
+    SocialError.AliasLocked -> Res.string.social_alias_locked
     else -> Res.string.social_error
 }
 

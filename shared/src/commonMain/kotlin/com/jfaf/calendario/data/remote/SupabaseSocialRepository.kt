@@ -161,6 +161,7 @@ internal fun socialErrorOf(e: Throwable): SocialError {
     }.lowercase()
     return when {
         "alias_taken" in text -> SocialError.AliasTaken
+        "alias_locked" in text -> SocialError.AliasLocked
         "invalid_alias" in text -> SocialError.InvalidAlias
         "not_authenticated" in text -> SocialError.NotAuthenticated
         "invalid_transition" in text -> SocialError.InvalidTransition

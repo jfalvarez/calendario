@@ -192,7 +192,9 @@
     <string name="social_section_title">Compañeros</string>
     <string name="social_need_session">Inicia sesión para compartir tu calendario con compañeros.</string>
     <string name="social_alias_label">Mi alias</string>
-    <string name="social_alias_hint">De 3 a 20 letras, números o guion bajo. Dícelo a tu compañero de boca a boca.</string>
+    <string name="social_alias_hint">De 3 a 20 letras, números o guion bajo. Se fija al guardarlo y ya no se puede cambiar.</string>
+    <string name="social_alias_current">Tu alias: %1$s</string>
+    <string name="social_alias_locked">Tu alias ya está fijado y no se puede cambiar.</string>
     <string name="social_alias_save">Guardar</string>
     <string name="social_alias_saved">Alias guardado.</string>
     <string name="social_request_label">Alias de tu compañero</string>

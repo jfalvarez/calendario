@@ -79,7 +79,8 @@ create policy links_select_party on public.links for select to authenticated
 -- Sin políticas de insert/update/delete: todo pasa por las funciones de abajo.
 
 -- ---------------------------------------------------------------------------
--- Elegir o cambiar el alias. Lanza alias_taken si otro usuario ya lo tiene (sin distinguir mayúsculas).
+-- Fijar el alias (una sola vez). Lanza alias_locked si ya tiene uno, alias_taken si otro usuario lo tiene
+-- (sin distinguir mayúsculas). Un alias fijado no se puede cambiar: es la identidad con la que te encuentran.
 -- ---------------------------------------------------------------------------
 create or replace function public.set_my_alias(p_alias text)
 returns text
@@ -93,6 +94,9 @@ declare
 begin
   if me is null then
     raise exception 'not_authenticated';
+  end if;
+  if exists (select 1 from public.profiles pr where pr.owner_id = me and pr.alias is not null) then
+    raise exception 'alias_locked';
   end if;
   if a is null or a !~ '^[A-Za-z0-9_]{3,20}$' then
     raise exception 'invalid_alias';

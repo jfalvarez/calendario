@@ -7,7 +7,7 @@ import com.jfaf.calendario.domain.model.PendingRequest
 import com.jfaf.calendario.domain.model.SharedAssignment
 
 /** Errores de dominio de las operaciones sociales. `Unknown` cubre fallos no esperados. */
-enum class SocialError { AliasTaken, InvalidAlias, NotAuthenticated, InvalidTransition, Forbidden, LinkNotFound, Network, Unknown }
+enum class SocialError { AliasTaken, AliasLocked, InvalidAlias, NotAuthenticated, InvalidTransition, Forbidden, LinkNotFound, Network, Unknown }
 
 /** Error de dominio envuelto en `Result.failure`. */
 class SocialException(val error: SocialError) : Exception(error.name)

@@ -13,7 +13,7 @@ Fuera de alcance por ahora: intercambio de turnos (siguiente fase), notificacion
 | Tema | Decisión | Por qué |
 |------|----------|---------|
 | Cómo se encuentran | **Alias** elegido por el usuario, compartido de boca a boca | Es lo que la gente ya entiende (como un usuario de WhatsApp o Telegram) y no requiere copiar códigos. |
-| Formato del alias | 3–20 caracteres: letras, números y guion bajo. Único sin distinguir mayúsculas. Cambiable | Evita confusiones tipo "Juan"/"juan" y nombres raros. |
+| Formato del alias | 3–20 caracteres: letras, números y guion bajo. Único sin distinguir mayúsculas. **Se fija una sola vez** y no se puede cambiar | Evita confusiones tipo "Juan"/"juan" y nombres raros. Es la identidad con la que te encuentran: si cambiara, los compañeros que te tenían dejarían de encontrarte. |
 | Búsqueda | **Solo exacta**. No hay listados ni búsqueda por prefijo | Un alias es adivinable; si se pudiera buscar parcialmente, la app serviría de buscador de personas. |
 | Límite de búsquedas | **20 búsquedas por hora** por usuario, registradas en `link_attempts` | Frena la enumeración de alias. |
 | Quién autoriza | El **dueño acepta** la solicitud | Nadie aparece en tu calendario sin tu visto bueno. |
@@ -40,7 +40,7 @@ Fuera de alcance por ahora: intercambio de turnos (siguiente fase), notificacion
 
 ## Flujos
 
-1. **Elegir alias**: el usuario abre Ajustes → "Compartir mi calendario" → `set_my_alias(alias)`. Errores: `invalid_alias`, `alias_taken`.
+1. **Elegir alias**: el usuario abre Ajustes → sección "Compañeros" → `set_my_alias(alias)`. Solo se puede hacer una vez: después la sección muestra el alias sin campo de edición. Errores: `invalid_alias`, `alias_taken`, `alias_locked`.
 2. **Compartir**: lo dice a su compañero de boca a boca ("búscame como *maria_turnos*").
 3. **Solicitar**: el compañero escribe el alias → `request_link(alias)` → `sent`, `alias_not_found`, `self`, `too_many_attempts` o `too_many_pending`.
 4. **Aviso al dueño**: al abrir la app o volver a primer plano, `list_pending_requests()` alimenta un banner en la pantalla principal: *"Tienes una solicitud de compañero pendiente"*, con el alias del solicitante y acciones Aceptar / Rechazar / Bloquear. En fase 3, además, una notificación push.
@@ -53,7 +53,7 @@ Fuera de alcance por ahora: intercambio de turnos (siguiente fase), notificacion
 - **Enumeración de alias**: límite de 20 búsquedas por hora, búsqueda exacta, y respuestas que no revelan bloqueos ni rechazos. Como el límite lo cuenta la propia tabla y no se revierte, no se puede saltar con errores.
 - **Acoso o spam**: máximo 5 pendientes, enfriamiento de 7 días tras rechazo o revocación del dueño, y bloqueo definitivo.
 - **Alias ofensivo o que suplanta a alguien**: el alias se valida solo por formato. Falta una lista de palabras reservadas y un mecanismo de reporte. Pendiente de decidir.
-- **Cambio de alias**: el dueño puede cambiarlo. Los vínculos siguen por `owner_id`, así que no se rompen, pero quien tenía el alias antiguo no podrá volver a buscarlo. Pendiente: un plazo mínimo entre cambios.
+- **Cambio de alias**: no permitido. `set_my_alias` lanza `alias_locked` si ya hay alias. Así nadie puede "perder" a sus compañeros cambiando de nombre ni suplantar un alias ya conocido. Si alguna vez hiciera falta corregir uno, sería una acción de soporte fuera de la app.
 - **Sin notificación en el móvil** hasta la fase 3: el banner solo se ve con la app abierta. Aceptable para empezar.
 - **Cuenta eliminada**: `on delete cascade` borra vínculos y bloqueos de ambos lados.
 
@@ -72,5 +72,4 @@ Fuera de alcance por ahora: intercambio de turnos (siguiente fase), notificacion
 
 - ¿Mostramos el alias del solicitante en el banner o también un mensaje opcional ("Hola, soy de la planta 3")? Un mensaje abre la puerta a texto libre; por ahora no lo incluyo.
 - ¿Quieres una lista de alias reservados (admin, soporte, etc.) y un botón de reportar?
-- ¿Limitamos el cambio de alias (por ejemplo, una vez cada 30 días)?
 - ¿Desbloqueo desde Ajustes? No está en el borrador.
