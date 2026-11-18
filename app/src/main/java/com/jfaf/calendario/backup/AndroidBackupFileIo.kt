@@ -34,11 +34,14 @@ class AndroidBackupFileIo(private val activity: ComponentActivity) : BackupFileI
 
     private fun finishSave(uri: android.net.Uri?) {
         val text = content
+        // Se guarda el callback antes de llamarlo: el siguiente guardado (p. ej. el segundo CSV) lo reasigna
+        // desde dentro, y no debemos borrarlo después.
+        val done = onSaved
+        content = null
+        onSaved = null
         val ok = uri != null && text != null && runCatching {
             activity.contentResolver.openOutputStream(uri)?.use { it.write(text.toByteArray(Charsets.UTF_8)) }
         }.isSuccess
-        content = null
-        onSaved?.invoke(ok)
-        onSaved = null
+        done?.invoke(ok)
     }
 }
