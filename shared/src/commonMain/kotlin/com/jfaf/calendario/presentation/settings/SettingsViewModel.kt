@@ -5,7 +5,6 @@ import androidx.lifecycle.viewModelScope
 import com.jfaf.calendario.domain.model.AppStyle
 import com.jfaf.calendario.domain.model.ReminderSettings
 import com.jfaf.calendario.domain.model.ThemeMode
-import com.jfaf.calendario.domain.repository.ErrorReporter
 import com.jfaf.calendario.domain.usecase.ObserveAppStyleUseCase
 import com.jfaf.calendario.domain.usecase.ObserveReminderSettingsUseCase
 import com.jfaf.calendario.domain.usecase.ObserveThemeModeUseCase
@@ -38,7 +37,6 @@ class SettingsViewModel(
     private val setReminderEnabled: SetReminderEnabledUseCase,
     private val setReminderTime: SetReminderTimeUseCase,
     private val reminderSystem: ReminderSystem,
-    private val errorReporter: ErrorReporter,
 ) : ViewModel() {
     /** `null` mientras se leen los ajustes (evita un destello con el tema equivocado al arrancar). */
     val themeMode: StateFlow<ThemeMode?> =
@@ -54,11 +52,6 @@ class SettingsViewModel(
         combine(observeReminder(), permissionDenied) { settings, denied ->
             ReminderUiState(reminderSystem.supported, settings.enabled, settings.minutesOfDay, denied)
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ReminderUiState(reminderSystem.supported))
-
-    /** `true` sólo en compilaciones de prueba con informes de fallos configurados. */
-    val canSendTestReport: Boolean get() = errorReporter.canSendTest
-
-    fun onSendTestReport() = errorReporter.sendTestReport()
 
     fun onThemeModeSelected(mode: ThemeMode) {
         viewModelScope.launch { setThemeMode(mode) }

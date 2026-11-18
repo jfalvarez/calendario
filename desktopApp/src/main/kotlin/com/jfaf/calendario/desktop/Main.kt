@@ -43,7 +43,7 @@ fun main() {
                     window.removeWindowListener(listener)
                 }
             }
-            App()
+            App(backupIo = remember { DesktopBackupFileIo(window) })
         }
     }
 }
