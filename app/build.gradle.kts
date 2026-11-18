@@ -4,6 +4,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.google.services) // lee app/google-services.json (fuera de git)
 }
 
 // Configuración de Supabase desde local.properties (la clave pública; nunca la service_role)
@@ -53,6 +54,12 @@ android {
             signingConfig = signingConfigs.getByName("debug")
             matchingFallbacks += "release"
         }
+        // Desarrollo: depurable y con otro id (com.jfaf.calendario.dev), para probar sin tocar la app de producción.
+        create("dev") {
+            initWith(getByName("debug"))
+            applicationIdSuffix = ".dev"
+            matchingFallbacks += "debug"
+        }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -66,6 +73,8 @@ android {
 
 dependencies {
     implementation(project(":shared"))
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.messaging) // avisos push (ver supabase/social_push.sql)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.core.splashscreen) // pantalla de arranque con el icono (Android 12+ nativa, antes emulada)
     implementation(libs.androidx.activity.compose)

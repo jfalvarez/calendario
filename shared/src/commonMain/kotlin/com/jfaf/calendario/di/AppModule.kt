@@ -7,6 +7,11 @@ import com.jfaf.calendario.domain.repository.AppConfigRepository
 import com.jfaf.calendario.data.remote.SupabaseAuthRepository
 import com.jfaf.calendario.data.remote.SupabaseConfig
 import com.jfaf.calendario.data.remote.SupabaseRemoteDataSource
+import com.jfaf.calendario.data.remote.SupabaseSocialRepository
+import com.jfaf.calendario.domain.repository.SocialRepository
+import com.jfaf.calendario.presentation.social.SocialViewModel
+import com.jfaf.calendario.presentation.backup.BackupViewModel
+import com.jfaf.calendario.presentation.social.SharedScheduleViewModel
 import com.jfaf.calendario.data.sync.SyncEngine
 import com.jfaf.calendario.domain.repository.AuthRepository
 import com.jfaf.calendario.domain.repository.SyncRepository
@@ -51,8 +56,12 @@ import com.jfaf.calendario.domain.usecase.ObserveAuthStateUseCase
 import com.jfaf.calendario.domain.usecase.ObserveSyncStateUseCase
 import com.jfaf.calendario.domain.usecase.RequestSyncUseCase
 import com.jfaf.calendario.domain.usecase.SignInUseCase
+import com.jfaf.calendario.domain.usecase.RequestPasswordResetUseCase
+import com.jfaf.calendario.domain.usecase.CompletePasswordResetUseCase
+import com.jfaf.calendario.domain.usecase.ChangePasswordUseCase
 import com.jfaf.calendario.domain.usecase.SignOutUseCase
 import com.jfaf.calendario.domain.usecase.SignUpUseCase
+import com.jfaf.calendario.domain.usecase.PushRegistration
 import com.jfaf.calendario.domain.usecase.ClearDaysUseCase
 import com.jfaf.calendario.domain.usecase.ToggleLocalHolidaysUseCase
 import com.jfaf.calendario.data.repository.RoomLocalHolidayRepository
@@ -119,6 +128,8 @@ val dataModule = module {
         }
     }
     single<AuthRepository> { SupabaseAuthRepository(get()) }
+    single<SocialRepository> { SupabaseSocialRepository(get()) }
+    single<com.jfaf.calendario.domain.repository.BackupStore> { com.jfaf.calendario.data.backup.RoomBackupStore(get()) }
     single<RemoteDataSource> { SupabaseRemoteDataSource(get()) }
     single<AppConfigRepository> { SupabaseAppConfigRepository(get(), get()) }
     single { SyncEngine(get(), get(), get(), get(), CoroutineScope(SupervisorJob() + Dispatchers.Default), errors = get()) }
@@ -145,7 +156,13 @@ val domainModule = module {
     factory { SignInUseCase(get()) }
     factory { SignUpUseCase(get()) }
     factory { SignOutUseCase(get()) }
+    factory { RequestPasswordResetUseCase(get()) }
+    factory { CompletePasswordResetUseCase(get()) }
+    factory { ChangePasswordUseCase(get()) }
     factory { ObserveAuthStateUseCase(get()) }
+    factory { PushRegistration(get(), getOrNull()) }
+    factory { com.jfaf.calendario.domain.usecase.ExportBackupUseCase(get()) }
+    factory { com.jfaf.calendario.domain.usecase.ImportBackupUseCase(get()) }
     factory { ObserveSyncStateUseCase(get()) }
     factory { RequestSyncUseCase(get()) }
     factory { ObserveThemeModeUseCase(get()) }
@@ -171,6 +188,9 @@ val presentationModule = module {
     viewModelOf(::ShiftsViewModel)
     viewModelOf(::SettingsViewModel)
     viewModelOf(::AccountViewModel)
+    viewModelOf(::SocialViewModel)
+    viewModelOf(::BackupViewModel)
+    viewModel { params -> SharedScheduleViewModel(params.get(), params.get(), get(), get(), get(), get()) }
     viewModelOf(::StatsViewModel)
     viewModelOf(::DebtsViewModel)
     viewModel { UpdateViewModel(get(), get(), get(), get<AppForegroundEvents>().events) }

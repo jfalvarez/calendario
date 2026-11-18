@@ -34,6 +34,7 @@ val androidModule = module {
     // La URL y la clave pública salen de local.properties en la compilación (ver app/build.gradle.kts).
     single { SupabaseConfig(BuildConfig.SUPABASE_URL, BuildConfig.SUPABASE_ANON_KEY) }
     single { AppPlatform("android") }
+    single<com.jfaf.calendario.domain.repository.PushTokenProvider> { com.jfaf.calendario.push.FirebasePushTokenProvider() }
     single { ShiftWidgetUpdater(androidContext(), get(), get()) }
     single { AndroidReminderSystem(androidContext()) } bind ReminderSystem::class
     single { ReminderScheduler(androidContext(), get()) }

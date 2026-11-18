@@ -46,7 +46,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.jfaf.calendario.domain.model.AppStyle
+import com.jfaf.calendario.domain.model.AuthState
 import com.jfaf.calendario.domain.model.ThemeMode
+import com.jfaf.calendario.presentation.social.SocialActions
+import com.jfaf.calendario.presentation.social.SocialSection
+import com.jfaf.calendario.presentation.social.SocialUiState
+import com.jfaf.calendario.presentation.social.SocialViewModel
+import com.jfaf.calendario.presentation.backup.BackupConfirmDialog
+import com.jfaf.calendario.presentation.backup.BackupFileIo
+import com.jfaf.calendario.presentation.backup.BackupSection
+import com.jfaf.calendario.presentation.backup.BackupUiState
+import com.jfaf.calendario.presentation.backup.BackupViewModel
+import com.jfaf.calendario.presentation.backup.LocalBackupFileIo
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
@@ -79,24 +90,64 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun SettingsScreen(
     onBack: () -> Unit,
+    onOpenShared: (ownerId: String, alias: String) -> Unit = { _, _ -> },
     viewModel: SettingsViewModel = koinViewModel(),
     accountViewModel: AccountViewModel = koinViewModel(),
+    socialViewModel: SocialViewModel = koinViewModel(),
 ) {
     val account by accountViewModel.uiState.collectAsState()
     val accountActions = remember(accountViewModel) {
         AccountActions(
-            accountViewModel::onEmailChange, accountViewModel::onPasswordChange, accountViewModel::onSignIn,
-            accountViewModel::onSignUp, accountViewModel::onSignOut, accountViewModel::onSyncNow,
+            onEmailChange = accountViewModel::onEmailChange,
+            onPasswordChange = accountViewModel::onPasswordChange,
+            onCodeChange = accountViewModel::onCodeChange,
+            onNewPasswordChange = accountViewModel::onNewPasswordChange,
+            onRepeatPasswordChange = accountViewModel::onRepeatPasswordChange,
+            onSignIn = accountViewModel::onSignIn,
+            onSignUp = accountViewModel::onSignUp,
+            onSignOut = accountViewModel::onSignOut,
+            onSyncNow = accountViewModel::onSyncNow,
+            onForgotPassword = accountViewModel::onForgotPassword,
+            onBackToSignIn = accountViewModel::onBackToSignIn,
+            onSendCode = accountViewModel::onSendCode,
+            onResetPassword = accountViewModel::onResetPassword,
+            onStartChangePassword = accountViewModel::onStartChangePassword,
+            onCancelChangePassword = accountViewModel::onCancelChangePassword,
+            onSaveNewPassword = accountViewModel::onSaveNewPassword,
         )
     }
     val mode by viewModel.themeMode.collectAsState()
     val style by viewModel.appStyle.collectAsState()
     val reminder by viewModel.reminder.collectAsState()
+    val social by socialViewModel.uiState.collectAsState()
+    val backupViewModel: BackupViewModel = koinViewModel()
+    val backup by backupViewModel.uiState.collectAsState()
+    val backupIo = LocalBackupFileIo.current
+    val socialActions = remember(socialViewModel, onOpenShared) {
+        SocialActions(
+            onSaveAlias = socialViewModel::saveAlias,
+            onRequestLink = socialViewModel::requestLink,
+            onInputChanged = socialViewModel::clearMessages,
+            onAccept = socialViewModel::accept,
+            onReject = socialViewModel::reject,
+            onBlock = socialViewModel::block,
+            onRevoke = socialViewModel::revoke,
+            onOpenShared = onOpenShared,
+            onRespondSwap = socialViewModel::respondSwap,
+            onCancelSwap = socialViewModel::cancelSwap,
+            onUnblock = socialViewModel::unblock,
+        )
+    }
     SettingsContent(
         mode ?: ThemeMode.System, style ?: AppStyle.Pop, onBack,
         viewModel::onThemeModeSelected, viewModel::onAppStyleSelected, account, accountActions,
         reminder, viewModel::onReminderEnabledChange, viewModel::onReminderTimeSelected,
-        viewModel.canSendTestReport, viewModel::onSendTestReport,
+        social = social, socialActions = socialActions, signedIn = account.auth is AuthState.SignedIn,
+        backup = backup, backupIo = backupIo,
+        onBackupExport = { backupIo?.let(backupViewModel::exportAll) },
+        onBackupImport = { backupIo?.let(backupViewModel::pickImport) },
+        onBackupConfirm = backupViewModel::confirmImport,
+        onBackupCancel = backupViewModel::cancelImport,
     )
 }
 
@@ -113,8 +164,15 @@ fun SettingsContent(
     reminder: ReminderUiState = ReminderUiState(),
     onReminderEnabledChange: (Boolean) -> Unit = {},
     onReminderTimeSelected: (Int) -> Unit = {},
-    canSendTestReport: Boolean = false,
-    onSendTestReport: () -> Unit = {},
+    social: SocialUiState = SocialUiState(),
+    socialActions: SocialActions = SocialActions(),
+    signedIn: Boolean = false,
+    backup: BackupUiState = BackupUiState(),
+    backupIo: BackupFileIo? = null,
+    onBackupExport: () -> Unit = {},
+    onBackupImport: () -> Unit = {},
+    onBackupConfirm: () -> Unit = {},
+    onBackupCancel: () -> Unit = {},
 ) {
     Scaffold(
         topBar = {
@@ -134,6 +192,11 @@ fun SettingsContent(
         ) {
             AccountSection(account, accountActions)
 
+            SocialSection(state = social, signedIn = signedIn, actions = socialActions)
+
+            BackupSection(backup, backupIo, onBackupExport, onBackupImport)
+            BackupConfirmDialog(backup.pendingImport, onBackupConfirm, onBackupCancel)
+
             if (reminder.supported) ReminderSection(reminder, onReminderEnabledChange, onReminderTimeSelected)
 
             Text(stringResource(Res.string.app_style), style = MaterialTheme.typography.titleMedium)
@@ -144,7 +207,6 @@ fun SettingsContent(
             ThemeOption(Res.string.theme_light, ThemeMode.Light, themeMode, onThemeModeSelected)
             ThemeOption(Res.string.theme_dark, ThemeMode.Dark, themeMode, onThemeModeSelected)
 
-            if (canSendTestReport) DiagnosticsSection(onSendTestReport)
         }
     }
 }
@@ -274,14 +336,3 @@ private fun TimePickerDialog(initialMinutes: Int, onConfirm: (Int) -> Unit, onDi
 private fun formatClock(minutesOfDay: Int): String =
     "${(minutesOfDay / 60).toString().padStart(2, '0')}:${(minutesOfDay % 60).toString().padStart(2, '0')}"
 
-/** Sólo en compilaciones de prueba: manda un fallo de mentira para comprobar que los informes llegan. */
-@Composable
-private fun DiagnosticsSection(onSendTestReport: () -> Unit) {
-    var sent by remember { mutableStateOf(false) }
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(stringResource(Res.string.diagnostics_title), style = MaterialTheme.typography.titleMedium)
-        OutlinedButton(onClick = { onSendTestReport(); sent = true }) {
-            Text(stringResource(if (sent) Res.string.test_report_sent else Res.string.test_report_send))
-        }
-    }
-}

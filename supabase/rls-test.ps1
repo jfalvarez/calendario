@@ -31,7 +31,9 @@ function Call($method, $path, $token, $body = $null, $extra = @{}) {
         $resp = $_.Exception.Response
         if (-not $resp) { throw }
         $status = [int]$resp.StatusCode
-        $text = (New-Object IO.StreamReader($resp.GetResponseStream())).ReadToEnd()
+        # PowerShell 5.1 ya leyó el cuerpo del error y lo deja en ErrorDetails; releer el stream da vacío.
+        $text = if ($_.ErrorDetails -and $_.ErrorDetails.Message) { $_.ErrorDetails.Message }
+                else { (New-Object IO.StreamReader($resp.GetResponseStream())).ReadToEnd() }
     }
     $json = $null
     try { $json = $text | ConvertFrom-Json } catch { }
@@ -141,10 +143,93 @@ $stored = if ($r.Status -eq 201) { [int64]$r.Json[0].updated_at } else { -1 }
 $limit = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds() + 300000 + 60000
 Check 'updated_at futuro se recorta a «ahora + 5 min»' ($r.Status -eq 201 -and $stored -le $limit) "HTTP $($r.Status), guardado=$stored"
 
+Write-Host "`n== Alias, solicitudes y bloqueos =="
+$socialTag = [guid]::NewGuid().ToString('N').Substring(0, 8)
+$aliasA = "rlsa_$socialTag"; $aliasB = "rlsb_$socialTag"
+$r = Call 'POST' '/rest/v1/rpc/set_my_alias' $a.Token @{ p_alias = $aliasA }
+Check 'A fija su alias' ($r.Status -eq 200 -and $r.Json -eq $aliasA) "HTTP $($r.Status) $($r.Text)"
+$r = Call 'POST' '/rest/v1/rpc/set_my_alias' $a.Token @{ p_alias = "otro_$socialTag" }
+Check 'A NO puede cambiar su alias ya fijado' ($r.Text -match 'alias_locked') "HTTP $($r.Status) $($r.Text)"
+$r = Call 'POST' '/rest/v1/rpc/set_my_alias' $b.Token @{ p_alias = $aliasB }
+Check 'B fija su alias' ($r.Status -eq 200) "HTTP $($r.Status) $($r.Text)"
+$r = Call 'POST' '/rest/v1/rpc/request_link' $b.Token @{ p_alias = $aliasA }
+Check 'B pide vínculo a A' ($r.Json -eq 'sent') "HTTP $($r.Status) $($r.Text)"
+$r = Call 'POST' '/rest/v1/rpc/request_link' $a.Token @{ p_alias = $aliasA }
+Check 'Nadie puede pedirse a sí mismo' ($r.Json -eq 'self') "HTTP $($r.Status) $($r.Text)"
+$r = Call 'POST' '/rest/v1/rpc/request_link' $b.Token @{ p_alias = "no_existe_$socialTag" }
+Check 'Alias inexistente responde alias_not_found' ($r.Json -eq 'alias_not_found') "HTTP $($r.Status) $($r.Text)"
+$r = Call 'POST' '/rest/v1/rpc/list_pending_requests' $a.Token @{}
+Check 'A ve la solicitud pendiente de B con su alias' ((Count $r) -eq 1 -and $r.Json[0].requester_alias -eq $aliasB) $r.Text
+$linkId = if ($r.Json) { $r.Json[0].link_id } else { 'sin-link' }
+$r = Call 'POST' '/rest/v1/rpc/get_shared_schedule' $b.Token @{ p_owner = $a.Uid; p_from = '2026-02-01'; p_to = '2026-02-28' }
+Check 'B NO ve el calendario de A antes de que acepte' ($r.Status -eq 400 -and $r.Text -match 'forbidden') "HTTP $($r.Status) $($r.Text)"
+$r = Call 'POST' '/rest/v1/rpc/set_link_status' $b.Token @{ p_link = $linkId; p_status = 'accepted' }
+Check 'B NO puede aceptarse su propia solicitud' ($r.Text -match 'invalid_transition|invalid_status|forbidden') "HTTP $($r.Status) $($r.Text)"
+$r = Call 'POST' '/rest/v1/links' $b.Token @{ requester_id = $b.Uid; owner_id = $a.Uid; status = 'accepted' }
+Check 'Nadie inserta vínculos directamente' ($r.Status -ge 400) "HTTP $($r.Status) $($r.Text)"
+$r = Call 'PATCH' "/rest/v1/links?id=eq.$linkId" $b.Token @{ status = 'accepted' }
+Check 'B NO puede cambiar el estado del vínculo con PATCH' ((Count $r) -eq 0) "HTTP $($r.Status) filas=$(Count $r)"
+$r = Call 'GET' "/rest/v1/profiles?owner_id=eq.$($a.Uid)&select=alias" $b.Token
+Check 'B NO lee el perfil de A directamente' ((Count $r) -eq 0) "filas=$(Count $r)"
+$r = Call 'POST' '/rest/v1/rpc/set_link_status' $a.Token @{ p_link = $linkId; p_status = 'accepted' }
+Check 'A acepta la solicitud' ($r.Status -in 200, 204) "HTTP $($r.Status) $($r.Text)"
+$r = Call 'POST' '/rest/v1/rpc/get_shared_schedule' $b.Token @{ p_owner = $a.Uid; p_from = '2026-02-01'; p_to = '2026-02-28' }
+Check 'Tras aceptar, B puede leer el calendario de A' ($r.Status -eq 200) "HTTP $($r.Status) $($r.Text)"
+
+Write-Host "`n== Bloqueos =="
+$r = Call 'POST' '/rest/v1/rpc/block_requester' $a.Token @{ p_link = $linkId }
+Check 'A bloquea a B' ($r.Status -in 200, 204) "HTTP $($r.Status) $($r.Text)"
+$r = Call 'POST' '/rest/v1/rpc/get_shared_schedule' $b.Token @{ p_owner = $a.Uid; p_from = '2026-02-01'; p_to = '2026-02-28' }
+Check 'Tras bloquear, B pierde el acceso al calendario de A' ($r.Status -eq 400 -and $r.Text -match 'forbidden') "HTTP $($r.Status)"
+$r = Call 'POST' '/rest/v1/rpc/request_link' $b.Token @{ p_alias = $aliasA }
+Check 'B pide de nuevo y recibe sent (sin revelar el bloqueo)' ($r.Json -eq 'sent') "HTTP $($r.Status) $($r.Text)"
+$r = Call 'POST' '/rest/v1/rpc/list_pending_requests' $a.Token @{}
+Check 'El bloqueado NO aparece como pendiente' ((Count $r) -eq 0) "filas=$(Count $r)"
+$r = Call 'POST' '/rest/v1/rpc/list_blocked' $a.Token @{}
+Check 'A ve a B en su lista de bloqueados' ((Count $r) -eq 1 -and $r.Json[0].blocked_id -eq $b.Uid) $r.Text
+$r = Call 'POST' '/rest/v1/rpc/unblock_requester' $a.Token @{ p_blocked = $b.Uid }
+Check 'A desbloquea a B' ($r.Status -in 200, 204) "HTTP $($r.Status) $($r.Text)"
+$r = Call 'POST' '/rest/v1/rpc/request_link' $b.Token @{ p_alias = $aliasA }
+Check 'Tras desbloquear, B puede volver a pedir vínculo' ($r.Json -eq 'sent') "HTTP $($r.Status) $($r.Text)"
+$r = Call 'POST' '/rest/v1/rpc/list_pending_requests' $a.Token @{}
+Check 'La nueva solicitud de B aparece como pendiente' ((Count $r) -eq 1) "filas=$(Count $r)"
+$linkId2 = if ($r.Json) { $r.Json[0].link_id } else { 'sin-link' }
+$null = Call 'POST' '/rest/v1/rpc/set_link_status' $a.Token @{ p_link = $linkId2; p_status = 'accepted' }
+
+Write-Host "`n== Propuestas de cambio de turno =="
+$sid = "rlstest-sw-$socialTag"; $d1 = '2026-02-02'; $d2 = '2026-02-03'
+$shiftRow = @{ id = $sid; name = 'rlsturno'; abbreviation = 'R'; color_argb = 1; sort_order = 98; updated_at = $now }
+$r = Call 'POST' '/rest/v1/shifts' $a.Token $shiftRow
+Check 'A tiene el turno de prueba' ($r.Status -eq 201) "HTTP $($r.Status) $($r.Text)"
+$r = Call 'POST' '/rest/v1/shifts' $b.Token $shiftRow
+Check 'B tiene el mismo turno de prueba' ($r.Status -eq 201) "HTTP $($r.Status) $($r.Text)"
+# A trabaja d2 (lo que recibirá B); B trabaja d1 (lo que entregará)
+$r = Call 'POST' '/rest/v1/shift_assignments' $a.Token @{ id = "$d2#0"; assignment_date = $d2; slot = 0; shift_id = $sid; updated_at = $now }
+$r = Call 'POST' '/rest/v1/shift_assignments' $b.Token @{ id = "$d1#0"; assignment_date = $d1; slot = 0; shift_id = $sid; updated_at = $now }
+$r = Call 'POST' '/rest/v1/rpc/propose_swap' $b.Token @{ p_target = $a.Uid; p_proposer_date = $d1; p_proposer_slot = 0; p_target_date = $d2; p_target_slot = 0 }
+Check 'B propone el cambio a A' ($r.Status -eq 200 -and $r.Json) "HTTP $($r.Status) $($r.Text)"
+$swapId = $r.Json
+$r = Call 'POST' '/rest/v1/rpc/respond_swap' $b.Token @{ p_swap = $swapId; p_accept = $true }
+Check 'B NO puede aceptar su propia propuesta' ($r.Text -match 'forbidden') "HTTP $($r.Status) $($r.Text)"
+$r = Call 'POST' '/rest/v1/rpc/respond_swap' $a.Token @{ p_swap = $swapId; p_accept = $true }
+Check 'A acepta el cambio' ($r.Status -eq 200 -and $r.Json -eq 'accepted') "HTTP $($r.Status) $($r.Text)"
+$r = Call 'GET' "/rest/v1/shift_assignments?owner_id=eq.$($a.Uid)&assignment_date=eq.$d1&deleted_at=is.null&select=shift_id" $a.Token
+Check 'Tras el cambio, A trabaja el día d1' ((Count $r) -eq 1) "filas=$(Count $r)"
+$r = Call 'GET' "/rest/v1/shift_assignments?owner_id=eq.$($b.Uid)&assignment_date=eq.$d2&deleted_at=is.null&select=shift_id" $b.Token
+Check 'Tras el cambio, B trabaja el día d2' ((Count $r) -eq 1) "filas=$(Count $r)"
+$r = Call 'GET' "/rest/v1/shift_assignments?owner_id=eq.$($a.Uid)&assignment_date=eq.$d2&deleted_at=is.null&select=shift_id" $a.Token
+Check 'A ya no trabaja el día d2' ((Count $r) -eq 0) "filas=$(Count $r)"
+$r = Call 'POST' '/rest/v1/rpc/respond_swap' $a.Token @{ p_swap = $swapId; p_accept = $true }
+Check 'Una propuesta no se puede aceptar dos veces' ($r.Text -match 'invalid_transition') "HTTP $($r.Status) $($r.Text)"
+
 Write-Host "`n== Limpieza (borrado lógico de las filas de prueba de A) =="
 $t = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds() + 10
 $null = Call 'PATCH' "/rest/v1/day_notes?id=like.$id*" $a.Token @{ deleted_at = $t; body = ''; updated_at = $t }
 $null = Call 'PATCH' "/rest/v1/shifts?id=like.$id*" $a.Token @{ deleted_at = $t; updated_at = $t }
+$null = Call 'PATCH' "/rest/v1/shifts?id=eq.$sid" $a.Token @{ deleted_at = $t; updated_at = $t }
+$null = Call 'PATCH' "/rest/v1/shifts?id=eq.$sid" $b.Token @{ deleted_at = $t; updated_at = $t }
+$null = Call 'PATCH' "/rest/v1/shift_assignments?shift_id=eq.$sid" $a.Token @{ deleted_at = $t; updated_at = $t }
+$null = Call 'PATCH' "/rest/v1/shift_assignments?shift_id=eq.$sid" $b.Token @{ deleted_at = $t; updated_at = $t }
 if ($auto) {
     Write-Host "`nBorra las cuentas temporales en Supabase → SQL Editor (sus filas caen en cascada):"
     Write-Host "  delete from auth.users where email like 'rlstest-%@example.com';"

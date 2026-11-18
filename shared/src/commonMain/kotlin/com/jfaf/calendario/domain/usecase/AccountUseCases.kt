@@ -9,10 +9,21 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 
 const val MIN_PASSWORD_LENGTH = 6
+const val RECOVERY_CODE_LENGTH = 6
+
+private fun isValidEmail(email: String): Boolean =
+    email.trim().let { it.contains('@') && it.substringAfter('@').contains('.') && !it.contains(' ') }
 
 private fun validate(email: String, password: String): AuthError? = when {
-    !email.trim().let { it.contains('@') && it.substringAfter('@').contains('.') && !it.contains(' ') } -> AuthError.InvalidEmail
+    !isValidEmail(email) -> AuthError.InvalidEmail
     password.length < MIN_PASSWORD_LENGTH -> AuthError.WeakPassword
+    else -> null
+}
+
+/** Validación de una contraseña nueva escrita dos veces (cambio o recuperación). */
+private fun validateNewPassword(newPassword: String, repeated: String): AuthError? = when {
+    newPassword.length < MIN_PASSWORD_LENGTH -> AuthError.WeakPassword
+    newPassword != repeated -> AuthError.PasswordMismatch
     else -> null
 }
 
@@ -30,6 +41,30 @@ class SignUpUseCase(private val auth: AuthRepository) {
 
 class SignOutUseCase(private val auth: AuthRepository) {
     suspend operator fun invoke() = auth.signOut()
+}
+
+/** Pide el código de recuperación. Por privacidad, la respuesta no revela si el correo tiene cuenta. */
+class RequestPasswordResetUseCase(private val auth: AuthRepository) {
+    suspend operator fun invoke(email: String): AuthError? =
+        if (!isValidEmail(email)) AuthError.InvalidEmail
+        else auth.sendPasswordReset(email.trim())
+}
+
+/** Verifica el código y fija la contraseña nueva. Valida todo antes de llamar al servidor. */
+class CompletePasswordResetUseCase(private val auth: AuthRepository) {
+    suspend operator fun invoke(email: String, code: String, newPassword: String, repeated: String): AuthError? {
+        if (!isValidEmail(email)) return AuthError.InvalidEmail
+        if (code.trim().length != RECOVERY_CODE_LENGTH || !code.trim().all { it.isDigit() }) return AuthError.InvalidCode
+        validateNewPassword(newPassword, repeated)?.let { return it }
+        auth.verifyRecoveryCode(email.trim(), code.trim())?.let { return it }
+        return auth.updatePassword(newPassword)
+    }
+}
+
+/** Cambia la contraseña con la sesión ya iniciada. */
+class ChangePasswordUseCase(private val auth: AuthRepository) {
+    suspend operator fun invoke(newPassword: String, repeated: String): AuthError? =
+        validateNewPassword(newPassword, repeated) ?: auth.updatePassword(newPassword)
 }
 
 class ObserveAuthStateUseCase(private val auth: AuthRepository) {

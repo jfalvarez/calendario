@@ -105,6 +105,8 @@ import com.jfaf.calendario.presentation.common.onShiftColor
 import kotlinx.datetime.LocalDate
 import org.jetbrains.compose.resources.stringArrayResource
 import org.jetbrains.compose.resources.stringResource
+import com.jfaf.calendario.presentation.social.RequestsChip
+import com.jfaf.calendario.presentation.social.SocialViewModel
 import org.koin.compose.viewmodel.koinViewModel
 
 /** Fracción del ancho de la cuadrícula que hay que arrastrar para cambiar de mes al soltar. */
@@ -150,8 +152,10 @@ fun CalendarScreen(
     onOpenStats: () -> Unit,
     onOpenDebts: () -> Unit,
     viewModel: CalendarViewModel = koinViewModel(),
+    socialViewModel: SocialViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
+    val social by socialViewModel.uiState.collectAsState()
     val actions = remember(viewModel, onOpenShifts, onOpenSettings, onOpenStats, onOpenDebts) {
         CalendarActions(
             onPreviousMonth = viewModel::onPreviousMonth,
@@ -183,11 +187,18 @@ fun CalendarScreen(
             onDeleteNote = viewModel::onDeleteNote,
         )
     }
-    CalendarContent(state, actions)
+    // En releaseCheck, sin solicitudes reales, se cuenta una de ejemplo para revisar el chip.
+    val requests = social.pending.size
+    CalendarContent(state, actions, pendingRequests = requests, onOpenRequests = onOpenSettings)
 }
 
 @Composable
-fun CalendarContent(state: CalendarUiState, actions: CalendarActions) {
+fun CalendarContent(
+    state: CalendarUiState,
+    actions: CalendarActions,
+    pendingRequests: Int = 0,
+    onOpenRequests: () -> Unit = {},
+) {
     val monthNames = stringArrayResource(Res.array.month_names)
     val weekdays = stringArrayResource(Res.array.weekday_short)
     val haptics = LocalHapticFeedback.current
@@ -240,6 +251,7 @@ fun CalendarContent(state: CalendarUiState, actions: CalendarActions) {
                 label = { Text(stringResource(Res.string.mode_notes)) },
             )
             Spacer(Modifier.weight(1f))
+            if (pendingRequests > 0) RequestsChip(pendingRequests, onOpenRequests)
             state.syncIndicator?.let { SyncStatus(it, actions.onSyncClick) }
         }
         Row(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
