@@ -20,6 +20,9 @@ data class CalendarUiState(
     val month: CalendarMonth,
     val today: LocalDate,
     val weeks: List<List<CalendarDay>> = emptyList(),
+    /** Cuadrículas de los meses vecinos, que se ven mientras se desliza el calendario. */
+    val prevWeeks: List<List<CalendarDay>> = emptyList(),
+    val nextWeeks: List<List<CalendarDay>> = emptyList(),
     val shifts: List<Shift> = emptyList(),
     /** Turno activo del modo Pintar; null = pintar desactivado. */
     val paintShiftId: String? = null,

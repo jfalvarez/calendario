@@ -82,9 +82,10 @@ class CalendarViewModel(
 
     private val notesState = combine(
         month.flatMapLatest { m ->
-            // Mismo rango que la cuadrícula del mes (incluye días de los meses vecinos).
-            val grid = buildMonthGrid(m, DayOfWeek.MONDAY)
-            observeNotes(grid.first().first(), grid.last().last())
+            // Rango de los tres meses que se muestran (anterior, actual y siguiente), para marcar también los vecinos.
+            val before = buildMonthGrid(m.previous, DayOfWeek.MONDAY)
+            val after = buildMonthGrid(m.next, DayOfWeek.MONDAY)
+            observeNotes(before.first().first(), after.last().last())
         },
         notesDate.flatMapLatest { date -> if (date == null) kotlinx.coroutines.flow.flowOf(null) else observeNotes(date, date).map { date to it } },
         observeDebts().map { balances -> balances.map { it.person } },
@@ -96,15 +97,23 @@ class CalendarViewModel(
         EditState(m, s, c != null, d, sync.toIndicator())
     }
 
+    /** Cuadrículas del mes mostrado y de sus vecinos: al deslizar, el vecino ya llega con sus turnos. */
+    private val threeMonths = month.flatMapLatest { m ->
+        combine(observeMonth(m.previous), observeMonth(m), observeMonth(m.next)) { prev, cur, next ->
+            Triple(prev, cur, next)
+        }
+    }
+
     val uiState: StateFlow<CalendarUiState> = combine(
         month,
-        month.flatMapLatest { observeMonth(it) },
+        threeMonths,
         observeShifts(),
         paintShiftId,
         combine(editState, notesState) { edit, notes -> edit to notes },
-    ) { m, weeks, shifts, paintId, (edit, notes) ->
+    ) { m, (prevWeeks, weeks, nextWeeks), shifts, paintId, (edit, notes) ->
         CalendarUiState(
-            month = m, today = today, weeks = weeks, shifts = shifts, paintShiftId = paintId,
+            month = m, today = today, weeks = weeks, prevWeeks = prevWeeks, nextWeeks = nextWeeks,
+            shifts = shifts, paintShiftId = paintId,
             mode = edit.mode, selection = edit.selection, hasClipboard = edit.hasClipboard, dialog = edit.dialog,
             syncIndicator = edit.syncIndicator, noteMarkers = notes.markers, notesDialog = notes.dialog,
         )

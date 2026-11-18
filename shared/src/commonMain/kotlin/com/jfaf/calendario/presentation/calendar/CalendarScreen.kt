@@ -60,9 +60,22 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
+import kotlinx.coroutines.launch
+import kotlin.math.abs
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilledTonalIconButton
@@ -93,6 +106,10 @@ import kotlinx.datetime.LocalDate
 import org.jetbrains.compose.resources.stringArrayResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+
+/** Fracción del ancho de la cuadrícula que hay que arrastrar para cambiar de mes al soltar. */
+private const val SWIPE_THRESHOLD = 0.25f
+private const val SLIDE_MS = 180
 
 /** Acciones que la pantalla envía al ViewModel (agrupadas para no arrastrar quince parámetros). */
 class CalendarActions(
@@ -174,6 +191,20 @@ fun CalendarContent(state: CalendarUiState, actions: CalendarActions) {
     val monthNames = stringArrayResource(Res.array.month_names)
     val weekdays = stringArrayResource(Res.array.weekday_short)
     val haptics = LocalHapticFeedback.current
+    val scope = rememberCoroutineScope()
+    // Deslizamiento horizontal de la cuadrícula: `slide` es su desplazamiento en píxeles.
+    val slide = remember { Animatable(0f) }
+    var gridWidth by remember { mutableFloatStateOf(0f) }
+    // +1 = mes siguiente, -1 = mes anterior, 0 = ninguno pendiente de entrar.
+    var pendingDirection by remember { mutableIntStateOf(0) }
+    // Cuando el ViewModel ya muestra el nuevo mes, la cuadrícula entra desde el lado opuesto.
+    LaunchedEffect(state.month) {
+        if (pendingDirection != 0) {
+            // El mes vecino ya ocupa exactamente esa posición: basta con recolocar la tira sin animar.
+            slide.snapTo(0f)
+            pendingDirection = 0
+        }
+    }
     Column(Modifier.fillMaxSize().safeDrawingPadding().padding(8.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             FilledTonalIconButton(onClick = actions.onPreviousMonth) {
@@ -216,27 +247,62 @@ fun CalendarContent(state: CalendarUiState, actions: CalendarActions) {
                 Text(it, Modifier.weight(1f), textAlign = TextAlign.Center, style = MaterialTheme.typography.labelMedium)
             }
         }
-        Column(Modifier.weight(1f).fillMaxWidth()) {
-            state.weeks.forEach { week ->
-                Row(Modifier.weight(1f).fillMaxWidth()) {
-                    week.forEach { day ->
-                        DayCell(
-                            day = day,
-                            isToday = day.date == state.today,
-                            isSelected = day.date in state.selection,
-                            markers = state.noteMarkers[day.date],
-                            onClick = {
-                                // Pintar un turno en el día: respuesta háptica (en escritorio no hace nada).
-                                if (state.mode == CalendarMode.Paint && state.paintShiftId != null) {
-                                    haptics.performHapticFeedback(HapticFeedbackType.ContextClick)
+        Box(
+            Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .onSizeChanged { gridWidth = it.width.toFloat() }
+                .clipToBounds()
+                .pointerInput(actions) {
+                    detectHorizontalDragGestures(
+                        onDragEnd = {
+                            val w = gridWidth
+                            val x = slide.value
+                            val dir = when {
+                                x <= -w * SWIPE_THRESHOLD -> 1
+                                x >= w * SWIPE_THRESHOLD -> -1
+                                else -> 0
+                            }
+                            scope.launch {
+                                if (dir == 0) {
+                                    slide.animateTo(0f, tween(SLIDE_MS))
+                                } else {
+                                    // Sale la cuadrícula actual y, al terminar, se cambia el mes.
+                                    slide.animateTo(-dir * w, tween(SLIDE_MS))
+                                    pendingDirection = dir
+                                    if (dir > 0) actions.onNextMonth() else actions.onPreviousMonth()
                                 }
-                                actions.onDayClick(day.date)
-                            },
-                            onLongClick = { actions.onDayLongPress(day.date) },
-                        )
-                    }
-                }
+                            }
+                        },
+                        onDragCancel = { scope.launch { slide.animateTo(0f, tween(SLIDE_MS)) } },
+                        onHorizontalDrag = { change, dragAmount ->
+                            change.consume()
+                            if (pendingDirection == 0) {
+                                scope.launch { slide.snapTo(slide.value + dragAmount) }
+                            }
+                        },
+                    )
+                },
+        ) {
+            val renderDay: @Composable RowScope.(CalendarDay) -> Unit = { day ->
+                DayCell(
+                    day = day,
+                    isToday = day.date == state.today,
+                    isSelected = day.date in state.selection,
+                    markers = state.noteMarkers[day.date],
+                    onClick = {
+                        // Pintar un turno en el día: respuesta háptica (en escritorio no hace nada).
+                        if (state.mode == CalendarMode.Paint && state.paintShiftId != null) {
+                            haptics.performHapticFeedback(HapticFeedbackType.ContextClick)
+                        }
+                        actions.onDayClick(day.date)
+                    },
+                    onLongClick = { actions.onDayLongPress(day.date) },
+                )
             }
+            MonthWeeks(state.prevWeeks, Modifier.fillMaxSize().graphicsLayer { translationX = slide.value - gridWidth }, renderDay)
+            MonthWeeks(state.weeks, Modifier.fillMaxSize().graphicsLayer { translationX = slide.value }, renderDay)
+            MonthWeeks(state.nextWeeks, Modifier.fillMaxSize().graphicsLayer { translationX = slide.value + gridWidth }, renderDay)
         }
         Surface(
             Modifier.fillMaxWidth().padding(top = 8.dp),
@@ -495,6 +561,22 @@ private fun RowScope.DayCell(
             }
         }
 if (markers != null) NoteMarker(markers)
+    }
+}
+
+/** Cuadrícula de un mes: una fila por semana, cada día lo dibuja [dayCell]. */
+@Composable
+private fun MonthWeeks(
+    weeks: List<List<CalendarDay>>,
+    modifier: Modifier,
+    dayCell: @Composable RowScope.(CalendarDay) -> Unit,
+) {
+    Column(modifier) {
+        weeks.forEach { week ->
+            Row(Modifier.weight(1f).fillMaxWidth()) {
+                week.forEach { day -> dayCell(day) }
+            }
+        }
     }
 }
 
