@@ -46,7 +46,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.jfaf.calendario.domain.model.AppStyle
+import com.jfaf.calendario.domain.model.AuthState
 import com.jfaf.calendario.domain.model.ThemeMode
+import com.jfaf.calendario.presentation.social.SocialActions
+import com.jfaf.calendario.presentation.social.SocialSection
+import com.jfaf.calendario.presentation.social.SocialUiState
+import com.jfaf.calendario.presentation.social.SocialViewModel
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
@@ -81,6 +86,7 @@ fun SettingsScreen(
     onBack: () -> Unit,
     viewModel: SettingsViewModel = koinViewModel(),
     accountViewModel: AccountViewModel = koinViewModel(),
+    socialViewModel: SocialViewModel = koinViewModel(),
 ) {
     val account by accountViewModel.uiState.collectAsState()
     val accountActions = remember(accountViewModel) {
@@ -106,11 +112,24 @@ fun SettingsScreen(
     val mode by viewModel.themeMode.collectAsState()
     val style by viewModel.appStyle.collectAsState()
     val reminder by viewModel.reminder.collectAsState()
+    val social by socialViewModel.uiState.collectAsState()
+    val socialActions = remember(socialViewModel) {
+        SocialActions(
+            onSaveAlias = socialViewModel::saveAlias,
+            onRequestLink = socialViewModel::requestLink,
+            onInputChanged = socialViewModel::clearMessages,
+            onAccept = socialViewModel::accept,
+            onReject = socialViewModel::reject,
+            onBlock = socialViewModel::block,
+            onRevoke = socialViewModel::revoke,
+        )
+    }
     SettingsContent(
         mode ?: ThemeMode.System, style ?: AppStyle.Pop, onBack,
         viewModel::onThemeModeSelected, viewModel::onAppStyleSelected, account, accountActions,
         reminder, viewModel::onReminderEnabledChange, viewModel::onReminderTimeSelected,
         viewModel.canSendTestReport, viewModel::onSendTestReport,
+        social = social, socialActions = socialActions, signedIn = account.auth is AuthState.SignedIn,
     )
 }
 
@@ -129,6 +148,9 @@ fun SettingsContent(
     onReminderTimeSelected: (Int) -> Unit = {},
     canSendTestReport: Boolean = false,
     onSendTestReport: () -> Unit = {},
+    social: SocialUiState = SocialUiState(),
+    socialActions: SocialActions = SocialActions(),
+    signedIn: Boolean = false,
 ) {
     Scaffold(
         topBar = {
@@ -147,6 +169,8 @@ fun SettingsContent(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             AccountSection(account, accountActions)
+
+            SocialSection(state = social, signedIn = signedIn, actions = socialActions)
 
             if (reminder.supported) ReminderSection(reminder, onReminderEnabledChange, onReminderTimeSelected)
 

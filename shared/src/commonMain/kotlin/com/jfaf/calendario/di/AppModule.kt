@@ -7,6 +7,9 @@ import com.jfaf.calendario.domain.repository.AppConfigRepository
 import com.jfaf.calendario.data.remote.SupabaseAuthRepository
 import com.jfaf.calendario.data.remote.SupabaseConfig
 import com.jfaf.calendario.data.remote.SupabaseRemoteDataSource
+import com.jfaf.calendario.data.remote.SupabaseSocialRepository
+import com.jfaf.calendario.domain.repository.SocialRepository
+import com.jfaf.calendario.presentation.social.SocialViewModel
 import com.jfaf.calendario.data.sync.SyncEngine
 import com.jfaf.calendario.domain.repository.AuthRepository
 import com.jfaf.calendario.domain.repository.SyncRepository
@@ -122,6 +125,7 @@ val dataModule = module {
         }
     }
     single<AuthRepository> { SupabaseAuthRepository(get()) }
+    single<SocialRepository> { SupabaseSocialRepository(get()) }
     single<RemoteDataSource> { SupabaseRemoteDataSource(get()) }
     single<AppConfigRepository> { SupabaseAppConfigRepository(get(), get()) }
     single { SyncEngine(get(), get(), get(), get(), CoroutineScope(SupervisorJob() + Dispatchers.Default), errors = get()) }
@@ -177,6 +181,7 @@ val presentationModule = module {
     viewModelOf(::ShiftsViewModel)
     viewModelOf(::SettingsViewModel)
     viewModelOf(::AccountViewModel)
+    viewModelOf(::SocialViewModel)
     viewModelOf(::StatsViewModel)
     viewModelOf(::DebtsViewModel)
     viewModel { UpdateViewModel(get(), get(), get(), get<AppForegroundEvents>().events) }
