@@ -26,6 +26,7 @@ import com.jfaf.calendario.domain.usecase.PaintDayUseCase
 import com.jfaf.calendario.domain.usecase.PasteDaysUseCase
 import com.jfaf.calendario.domain.usecase.RepeatDaysUseCase
 import com.jfaf.calendario.domain.usecase.ToggleLocalHolidaysUseCase
+import com.jfaf.calendario.presentation.update.AppForegroundEvents
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -56,9 +57,10 @@ class CalendarViewModel(
     private val deleteNote: DeleteDayNoteUseCase,
     observeSync: ObserveSyncStateUseCase,
     private val requestSync: RequestSyncUseCase,
-    todayProvider: TodayProvider,
+    private val todayProvider: TodayProvider,
+    foregroundEvents: AppForegroundEvents,
 ) : ViewModel() {
-    private val today = todayProvider.today()
+    private var today = todayProvider.today()
     private val month = MutableStateFlow(CalendarMonth.of(today))
     private val paintShiftId = MutableStateFlow<String?>(null)
     private val mode = MutableStateFlow(CalendarMode.Paint)
@@ -69,6 +71,16 @@ class CalendarViewModel(
     private val notesDate = MutableStateFlow<LocalDate?>(null)
     /** Último día tocado: extremo desde el que se selecciona un rango con pulsación larga. */
     private var anchor: LocalDate? = null
+
+    init {
+        // Al volver a primer plano: recalcula "hoy" (puede haber cambiado de día) y sitúa el calendario en el mes actual.
+        viewModelScope.launch {
+            foregroundEvents.events.collect {
+                today = todayProvider.today()
+                month.value = CalendarMonth.of(today)
+            }
+        }
+    }
 
     private data class EditState(
         val mode: CalendarMode,
