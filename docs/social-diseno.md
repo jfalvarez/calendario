@@ -62,10 +62,40 @@ Fuera de alcance por ahora: intercambio de turnos (siguiente fase), notificacion
 - Extender `supabase/rls-test.ps1` con: alias duplicado en distinto caso (`Juan`/`juan`) → `alias_taken`; búsqueda 21 veces en una hora → `too_many_attempts`; sexta solicitud pendiente → `too_many_pending`; bloqueado y rechazado reciben `sent` sin crear fila; el solicitante no puede aceptarse; sin acceso a `get_shared_schedule` salvo vínculo `accepted`; nadie puede escribir en `links`, `profiles` ni `link_blocks` directamente.
 - Tests unitarios en `shared`: validación del alias (formato y normalización) y el mapeo de los códigos de `request_link` a mensajes de UI.
 
+## Intercambio de turnos (fase 2)
+
+Estado: **borrador**. SQL en [supabase/social_swaps.sql](../supabase/social_swaps.sql), sin aplicar. Requiere `social.sql` ya aplicado.
+
+**Caso de uso**: Ana trabaja el día 3 y Luis el día 5, y quieren cambiarlo. Ana propone "te doy mi turno del día 3 a cambio de tu turno del día 5". Luis acepta o rechaza. Si acepta, cada uno trabaja el día del otro, en el mismo turno (mañana/tarde/noche).
+
+| Tema | Decisión | Por qué |
+|------|----------|---------|
+| Quién puede proponer | Quien tiene un **vínculo aceptado** hacia el otro | Necesita ver el calendario del otro para elegir su día. |
+| Quién acepta | Solo el **destinatario** | Nadie cambia tu calendario sin tu consentimiento. |
+| Quién escribe | Solo `respond_swap` (SECURITY DEFINER), en una transacción | Ninguno de los dos puede escribir en el calendario del otro. |
+| Qué se intercambia | Día y **slot** de cada parte: cada uno entrega un día y recibe el del otro | Cubre el caso habitual sin inventar turnos nuevos. |
+| Condiciones | Ambos días tienen turno; el día que se recibe está libre; el turno existe en la cuenta que lo recibe | Evita dejar un calendario con dos turnos en el mismo slot o con un turno que no existe. |
+| Ids de asignación | `AAAA-MM-DD#slot`, como en la app | Así el upsert actualiza la fila existente y no choca con filas borradas lógicamente (la restricción única de día+slot). |
+| Sincronización | `updated_at` en milisegundos del servidor | El last-write-wins de la app acepta el cambio y los otros dispositivos lo descargan por `server_updated_at`. |
+| Límite | 10 propuestas pendientes por persona | Evita spam. |
+| Revocar el vínculo a mitad | `respond_swap` comprueba que el vínculo siga aceptado | Si se revocó, la propuesta no se puede aceptar. |
+
+**Flujo**
+1. A elige su día y el día de B → `propose_swap(b, dA, slotA, dB, slotB)` → `pending`.
+2. B ve la propuesta en `list_my_swaps()` → `respond_swap(id, true | false)`.
+3. Si acepta: se retiran los dos turnos originales y se crean los nuevos. Cada calendario se actualiza en el siguiente sincronizado.
+4. A puede cancelar mientras esté pendiente → `cancel_swap(id)`.
+
+**Riesgos y decisiones abiertas**
+- **Turno que no existe en la otra cuenta**: hoy se rechaza con `shift_missing`. Alternativa: copiar la definición del turno a la cuenta que lo recibe. Eso añade un turno nuevo a su lista sin que lo haya pedido, así que lo dejo como decisión tuya.
+- **Filas con `updated_at` adelantado**: el trigger limita el `updated_at` del cliente a «ahora + 5 min». Si un dispositivo tiene el reloj muy adelantado, el cambio del servidor puede ignorarse hasta que pase ese margen. Es el mismo comportamiento que ya tiene la app.
+- **Sin notificación**: como en la fase 1, la propuesta se ve al abrir la app o volver a primer plano, hasta que llegue la fase 3.
+- **Pruebas**: esta fase necesita dos cuentas para probarla de punta a punta.
+
 ## Fases propuestas
 
 1. **Alias, vínculos y vista compartida de solo lectura** (este diseño), con el banner de pendientes.
-2. **Intercambio de turnos**: tabla de solicitudes; al aceptar, una función modifica `shift_assignments` de ambas partes con comprobaciones explícitas. Requiere diseño propio.
+2. **Intercambio de turnos**: ver la sección anterior.
 3. **Notificaciones push (FCM)**: tabla de tokens por dispositivo y envío desde una Edge Function al crear una solicitud.
 
 ## Preguntas abiertas
