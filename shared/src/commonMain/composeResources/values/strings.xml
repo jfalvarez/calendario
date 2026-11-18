@@ -131,6 +131,22 @@
     <string name="auth_error_unknown">No se pudo completar la operación.</string>
 
     <string name="auth_error_confirm_email">Cuenta creada. Confirma tu correo con el enlace que te hemos enviado y después inicia sesión.</string>
+    <string name="auth_error_invalid_code">El código no es válido o ha caducado. Pide uno nuevo.</string>
+    <string name="auth_error_password_mismatch">Las contraseñas no coinciden.</string>
+    <string name="auth_error_too_many">Demasiados intentos. Espera unos minutos e inténtalo de nuevo.</string>
+
+    <string name="forgot_password">¿Olvidaste la contraseña?</string>
+    <string name="forgot_hint">Te enviaremos un código de 6 dígitos al correo para crear una contraseña nueva.</string>
+    <string name="code_sent_notice">Si el correo tiene cuenta, te hemos enviado un código. Revisa también la carpeta de spam.</string>
+    <string name="code_hint">Escribe el código de 6 dígitos que te hemos enviado y la contraseña nueva.</string>
+    <string name="code_label">Código de 6 dígitos</string>
+    <string name="new_password">Nueva contraseña (mínimo 6 caracteres)</string>
+    <string name="repeat_password">Repite la nueva contraseña</string>
+    <string name="send_code">Enviar código</string>
+    <string name="resend_code">Reenviar código</string>
+    <string name="reset_password">Cambiar contraseña</string>
+    <string name="change_password">Cambiar contraseña</string>
+    <string name="password_changed">Contraseña cambiada correctamente.</string>
 
     <string name="sync_status_pending">Pendiente</string>
     <string name="sync_status_syncing">Sincronizando…</string>
