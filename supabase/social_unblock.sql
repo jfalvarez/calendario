@@ -39,6 +39,12 @@ begin
 
   delete from public.link_blocks
    where owner_id = (select auth.uid()) and blocked_id = p_blocked;
+
+  -- Quitar también el enfriamiento de 7 días que dejó el bloqueo: así puede volver a pedir vínculo ya.
+  update public.links
+     set ended_by = null, updated_at = now()
+   where requester_id = p_blocked and owner_id = (select auth.uid())
+     and status in ('revoked', 'rejected');
 end;
 $$;
 
