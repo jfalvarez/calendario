@@ -96,10 +96,39 @@ Estado: **borrador**. SQL en [supabase/social_swaps.sql](../supabase/social_swap
 
 1. **Alias, vínculos y vista compartida de solo lectura** (este diseño), con el banner de pendientes.
 2. **Intercambio de turnos**: ver la sección anterior.
-3. **Notificaciones push (FCM)**: tabla de tokens por dispositivo y envío desde una Edge Function al crear una solicitud.
+3. **Notificaciones push (FCM)**: ver la sección "Avisos push".
 
 ## Preguntas abiertas
 
 - ¿Mostramos el alias del solicitante en el banner o también un mensaje opcional ("Hola, soy de la planta 3")? Un mensaje abre la puerta a texto libre; por ahora no lo incluyo.
 - ¿Quieres una lista de alias reservados (admin, soporte, etc.) y un botón de reportar?
 - ¿Desbloqueo desde Ajustes? No está en el borrador.
+
+## Avisos push (fase 3)
+
+Estado: **borrador**, sin desplegar. Archivos: [supabase/social_push.sql](../supabase/social_push.sql) y [supabase/functions/notify-push/index.ts](../supabase/functions/notify-push/index.ts).
+
+**Qué avisa**
+- Solicitud nueva de vínculo → al dueño.
+- Solicitud aceptada → al solicitante.
+- Propuesta de cambio nueva → al destinatario.
+- Propuesta aceptada o rechazada → al proponente.
+
+**Decisiones**
+| Tema | Decisión | Por qué |
+|------|----------|---------|
+| Texto | Genérico, sin alias ni turnos | La notificación puede verse en la pantalla de bloqueo. |
+| Quién envía | Disparadores en la base de datos que llaman a una Edge Function con pg_net | La app no tiene que estar abierta ni hacer nada. |
+| Secreto | Cabecera `x-notify-secret` compartida | Solo la base de datos puede pedir avisos. |
+| Tokens | Una fila por dispositivo y usuario; se borran los que FCM rechaza | Un usuario puede tener varios móviles y los tokens caducan. |
+| Sin configurar | `send_push` no hace nada si falta `push_config` | Las bases de prueba siguen funcionando sin FCM. |
+
+**Pasos que requieren tu cuenta (no están hechos)**
+1. Crear un proyecto en Firebase, añadir la app Android y descargar `google-services.json` (fuera de git).
+2. Crear una cuenta de servicio con permiso de mensajería y guardar sus datos como secretos de la función.
+3. En Supabase: activar `pg_net`, ejecutar `social_push.sql`, rellenar `push_config` y desplegar la función.
+4. En la app: dependencia de Firebase Messaging, registrar el token con `register_device_token` al iniciar sesión y `unregister_device_token` al cerrarla. Eso está pendiente de los pasos 1 a 3.
+
+**Riesgos**
+- Sin la función desplegada, los disparadores no fallan: simplemente no llega nada.
+- Los avisos dependen de la red del móvil y de que el usuario no haya desactivado las notificaciones de la app.
