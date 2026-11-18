@@ -54,6 +54,12 @@ android {
             signingConfig = signingConfigs.getByName("debug")
             matchingFallbacks += "release"
         }
+        // Desarrollo: depurable y con otro id (com.jfaf.calendario.dev), para probar sin tocar la app de producción.
+        create("dev") {
+            initWith(getByName("debug"))
+            applicationIdSuffix = ".dev"
+            matchingFallbacks += "debug"
+        }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
