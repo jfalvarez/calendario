@@ -10,7 +10,7 @@ import com.jfaf.calendario.domain.model.PendingRequest
 import com.jfaf.calendario.domain.model.SwapProposal
 import com.jfaf.calendario.domain.model.isValidAlias
 import com.jfaf.calendario.domain.repository.SocialError
-import com.jfaf.calendario.domain.repository.SocialException
+import com.jfaf.calendario.domain.repository.toSocialError
 import com.jfaf.calendario.domain.repository.SocialRepository
 import com.jfaf.calendario.domain.usecase.ObserveAuthStateUseCase
 import com.jfaf.calendario.presentation.update.AppForegroundEvents
@@ -117,10 +117,8 @@ class SocialViewModel(
         state.update { it.copy(busy = true, error = null) }
         viewModelScope.launch {
             val result = action()
-            state.update { it.copy(busy = false, error = result.exceptionOrNull()?.let(::errorOf)) }
+            state.update { it.copy(busy = false, error = result.exceptionOrNull()?.toSocialError()) }
             if (result.isSuccess) refresh()
         }
     }
-
-    private fun errorOf(e: Throwable): SocialError = (e as? SocialException)?.error ?: SocialError.Unknown
 }

@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jfaf.calendario.domain.model.CalendarMonth
 import com.jfaf.calendario.domain.model.DayNoteDraft
+import com.jfaf.calendario.domain.model.DayNoteMarkers
 import com.jfaf.calendario.domain.model.DayPattern
 import com.jfaf.calendario.domain.repository.TodayProvider
 import com.jfaf.calendario.domain.usecase.AssignShiftToDaysUseCase
@@ -12,20 +13,18 @@ import com.jfaf.calendario.domain.usecase.CopyDaysUseCase
 import com.jfaf.calendario.domain.usecase.DeleteDayNoteUseCase
 import com.jfaf.calendario.domain.usecase.ObserveDayNotesUseCase
 import com.jfaf.calendario.domain.usecase.ObserveDebtsUseCase
-import com.jfaf.calendario.domain.usecase.SaveDayNoteUseCase
-import com.jfaf.calendario.domain.usecase.SetNoteSettledUseCase
-import com.jfaf.calendario.domain.usecase.buildMonthGrid
-import com.jfaf.calendario.domain.usecase.markersOf
-import kotlinx.coroutines.flow.map
-import kotlinx.datetime.DayOfWeek
 import com.jfaf.calendario.domain.usecase.ObserveMonthUseCase
 import com.jfaf.calendario.domain.usecase.ObserveShiftsUseCase
 import com.jfaf.calendario.domain.usecase.ObserveSyncStateUseCase
-import com.jfaf.calendario.domain.usecase.RequestSyncUseCase
 import com.jfaf.calendario.domain.usecase.PaintDayUseCase
 import com.jfaf.calendario.domain.usecase.PasteDaysUseCase
 import com.jfaf.calendario.domain.usecase.RepeatDaysUseCase
+import com.jfaf.calendario.domain.usecase.RequestSyncUseCase
+import com.jfaf.calendario.domain.usecase.SaveDayNoteUseCase
+import com.jfaf.calendario.domain.usecase.SetNoteSettledUseCase
 import com.jfaf.calendario.domain.usecase.ToggleLocalHolidaysUseCase
+import com.jfaf.calendario.domain.usecase.buildMonthGrid
+import com.jfaf.calendario.domain.usecase.markersOf
 import com.jfaf.calendario.presentation.update.AppForegroundEvents
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -33,10 +32,15 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.plus
 
 /** Sólo depende de casos de uso; expone un único `StateFlow<UiState>`. */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -90,7 +94,7 @@ class CalendarViewModel(
         val syncIndicator: SyncIndicator?,
     )
 
-    private data class NotesState(val markers: Map<LocalDate, com.jfaf.calendario.domain.model.DayNoteMarkers>, val dialog: NotesDialogState?)
+    private data class NotesState(val markers: Map<LocalDate, DayNoteMarkers>, val dialog: NotesDialogState?)
 
     private val notesState = combine(
         month.flatMapLatest { m ->
@@ -99,7 +103,7 @@ class CalendarViewModel(
             val after = buildMonthGrid(m.next, DayOfWeek.MONDAY)
             observeNotes(before.first().first(), after.last().last())
         },
-        notesDate.flatMapLatest { date -> if (date == null) kotlinx.coroutines.flow.flowOf(null) else observeNotes(date, date).map { date to it } },
+        notesDate.flatMapLatest { date -> if (date == null) flowOf(null) else observeNotes(date, date).map { date to it } },
         observeDebts().map { balances -> balances.map { it.person } },
     ) { monthNotes, open, people ->
         NotesState(markersOf(monthNotes), open?.let { (date, notes) -> NotesDialogState(date, notes, people) })
@@ -166,7 +170,7 @@ class CalendarViewModel(
         if (mode.value != CalendarMode.Edit) return
         val from = anchor ?: date
         val (start, end) = if (from <= date) from to date else date to from
-        val range = generateSequence(start) { it.plusOneDay() }.takeWhile { it <= end }.toSet()
+        val range = generateSequence(start) { it.plus(1, DateTimeUnit.DAY) }.takeWhile { it <= end }.toSet()
         selection.update { it + range }
         anchor = date
     }
@@ -226,6 +230,3 @@ class CalendarViewModel(
         viewModelScope.launch { block(dates) }
     }
 }
-
-private fun LocalDate.plusOneDay(): LocalDate =
-    kotlinx.datetime.LocalDate.fromEpochDays(toEpochDays() + 1)

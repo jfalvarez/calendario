@@ -71,3 +71,6 @@ interface SocialRepository {
     /** Quita el bloqueo: la persona puede volver a pedir vínculo. No restaura vínculos anteriores. */
     suspend fun unblock(blockedId: String): Result<Unit>
 }
+
+/** Error de dominio de un fallo: el [SocialException] trae el suyo; cualquier otro fallo es `Unknown`. */
+fun Throwable.toSocialError(): SocialError = (this as? SocialException)?.error ?: SocialError.Unknown

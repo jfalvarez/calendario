@@ -13,6 +13,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.lifecycleScope
 import com.jfaf.calendario.domain.model.AuthState
+import com.jfaf.calendario.backup.AndroidBackupFileIo
 import com.jfaf.calendario.domain.usecase.ObserveAuthStateUseCase
 import com.jfaf.calendario.domain.usecase.PushRegistration
 import com.jfaf.calendario.presentation.App
@@ -27,7 +28,7 @@ class MainActivity : ComponentActivity() {
     private val observeAuth: ObserveAuthStateUseCase by inject()
     private val pushRegistration: PushRegistration by inject()
     private val notificationPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
-    private val backupIo = com.jfaf.calendario.backup.AndroidBackupFileIo(this)
+    private val backupIo = AndroidBackupFileIo(this)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen() // antes de super.onCreate: pasa de Theme.Calendario.Starting a Theme.Calendario
@@ -42,13 +43,15 @@ class MainActivity : ComponentActivity() {
             observeAuth().filterIsInstance<AuthState.SignedIn>().collect { pushRegistration.register() }
         }
         setContent {
-            App(backupIo = backupIo, onDarkThemeChanged = { dark ->
-                // Iconos de las barras del sistema legibles según el tema elegido en la app (no sólo el del sistema).
-                val style = if (dark) SystemBarStyle.dark(Color.TRANSPARENT)
-                else SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
-                enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
-            })
+            App(backupIo = backupIo, onDarkThemeChanged = ::applySystemBars)
         }
+    }
+
+    // Iconos de las barras del sistema legibles según el tema elegido en la app (no sólo el del sistema).
+    private fun applySystemBars(dark: Boolean) {
+        val style = if (dark) SystemBarStyle.dark(Color.TRANSPARENT)
+        else SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
+        enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
     }
 
     override fun onResume() {

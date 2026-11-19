@@ -12,7 +12,7 @@ import com.jfaf.calendario.domain.model.previewForMe
 import com.jfaf.calendario.domain.repository.ShiftAssignmentRepository
 import com.jfaf.calendario.domain.repository.ShiftRepository
 import com.jfaf.calendario.domain.repository.SocialError
-import com.jfaf.calendario.domain.repository.SocialException
+import com.jfaf.calendario.domain.repository.toSocialError
 import com.jfaf.calendario.domain.repository.SocialRepository
 import com.jfaf.calendario.domain.repository.TodayProvider
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -103,7 +103,7 @@ class SharedScheduleViewModel(
                 it.copy(
                     assignments = result.getOrDefault(emptyList()),
                     loading = false,
-                    error = result.exceptionOrNull()?.let { e -> (e as? SocialException)?.error ?: SocialError.Unknown },
+                    error = result.exceptionOrNull()?.toSocialError(),
                 )
             }
         }
@@ -142,7 +142,7 @@ class SharedScheduleViewModel(
                 it.copy(
                     proposal = if (result.isSuccess) null else draft.copy(
                         sending = false,
-                        error = (result.exceptionOrNull() as? SocialException)?.error ?: SocialError.Unknown,
+                        error = result.exceptionOrNull()?.toSocialError() ?: SocialError.Unknown,
                     ),
                 )
             }
