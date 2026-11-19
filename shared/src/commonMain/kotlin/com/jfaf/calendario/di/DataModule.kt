@@ -23,12 +23,14 @@ import com.jfaf.calendario.domain.repository.AuthRepository
 import com.jfaf.calendario.domain.repository.BackupStore
 import com.jfaf.calendario.domain.repository.DayNoteRepository
 import com.jfaf.calendario.domain.repository.IdGenerator
+import com.jfaf.calendario.domain.repository.LinkRepository
 import com.jfaf.calendario.domain.repository.LocalHolidayRepository
+import com.jfaf.calendario.domain.repository.PushTokenRepository
 import com.jfaf.calendario.domain.repository.ReminderSettingsRepository
 import com.jfaf.calendario.domain.repository.SettingsRepository
+import com.jfaf.calendario.domain.repository.SharedScheduleRepository
 import com.jfaf.calendario.domain.repository.ShiftAssignmentRepository
 import com.jfaf.calendario.domain.repository.ShiftRepository
-import com.jfaf.calendario.domain.repository.SocialRepository
 import com.jfaf.calendario.domain.repository.SyncRepository
 import com.jfaf.calendario.domain.repository.TodayProvider
 import com.jfaf.calendario.presentation.update.AppForegroundEvents
@@ -84,7 +86,11 @@ val dataModule = module {
         }
     }
     single<AuthRepository> { SupabaseAuthRepository(get()) }
-    single<SocialRepository> { SupabaseSocialRepository(get()) }
+    single { SupabaseSocialRepository(get()) } binds arrayOf(
+        LinkRepository::class,
+        SharedScheduleRepository::class,
+        PushTokenRepository::class,
+    )
     single<BackupStore> { RoomBackupStore(get(), get()) }
     single<RemoteDataSource> { SupabaseRemoteDataSource(get()) }
     single<AppConfigRepository> { SupabaseAppConfigRepository(get(), get()) }

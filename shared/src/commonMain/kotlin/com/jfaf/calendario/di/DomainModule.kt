@@ -1,6 +1,10 @@
 package com.jfaf.calendario.di
 
+import com.jfaf.calendario.domain.usecase.AcceptRequestUseCase
 import com.jfaf.calendario.domain.usecase.AssignShiftToDaysUseCase
+import com.jfaf.calendario.domain.usecase.BlockRequesterUseCase
+import com.jfaf.calendario.domain.usecase.BuildSwapOptionsUseCase
+import com.jfaf.calendario.domain.usecase.CancelSwapUseCase
 import com.jfaf.calendario.domain.usecase.ChangePasswordUseCase
 import com.jfaf.calendario.domain.usecase.CheckForUpdateUseCase
 import com.jfaf.calendario.domain.usecase.ClearDaysUseCase
@@ -11,26 +15,34 @@ import com.jfaf.calendario.domain.usecase.DeleteShiftUseCase
 import com.jfaf.calendario.domain.usecase.DismissRecommendedUpdateUseCase
 import com.jfaf.calendario.domain.usecase.ExportBackupUseCase
 import com.jfaf.calendario.domain.usecase.ImportBackupUseCase
+import com.jfaf.calendario.domain.usecase.LoadSharedScheduleUseCase
+import com.jfaf.calendario.domain.usecase.LoadSocialOverviewUseCase
 import com.jfaf.calendario.domain.usecase.ObserveAppStyleUseCase
 import com.jfaf.calendario.domain.usecase.ObserveAuthStateUseCase
 import com.jfaf.calendario.domain.usecase.ObserveDayNotesUseCase
 import com.jfaf.calendario.domain.usecase.ObserveDebtsUseCase
 import com.jfaf.calendario.domain.usecase.ObserveDismissedUpdateUseCase
-import com.jfaf.calendario.domain.usecase.ObserveStatsUseCase
 import com.jfaf.calendario.domain.usecase.ObserveMonthUseCase
 import com.jfaf.calendario.domain.usecase.ObserveReminderSettingsUseCase
 import com.jfaf.calendario.domain.usecase.ObserveShiftsUseCase
+import com.jfaf.calendario.domain.usecase.ObserveStatsUseCase
 import com.jfaf.calendario.domain.usecase.ObserveSyncStateUseCase
 import com.jfaf.calendario.domain.usecase.ObserveThemeModeUseCase
 import com.jfaf.calendario.domain.usecase.ObserveUpcomingDaysUseCase
 import com.jfaf.calendario.domain.usecase.PaintDayUseCase
 import com.jfaf.calendario.domain.usecase.PasteDaysUseCase
 import com.jfaf.calendario.domain.usecase.PlanNextReminderUseCase
+import com.jfaf.calendario.domain.usecase.ProposeSwapUseCase
 import com.jfaf.calendario.domain.usecase.PushRegistration
+import com.jfaf.calendario.domain.usecase.RejectRequestUseCase
 import com.jfaf.calendario.domain.usecase.ReorderShiftsUseCase
 import com.jfaf.calendario.domain.usecase.RepeatDaysUseCase
+import com.jfaf.calendario.domain.usecase.RequestLinkUseCase
 import com.jfaf.calendario.domain.usecase.RequestPasswordResetUseCase
 import com.jfaf.calendario.domain.usecase.RequestSyncUseCase
+import com.jfaf.calendario.domain.usecase.RespondSwapUseCase
+import com.jfaf.calendario.domain.usecase.RevokeLinkUseCase
+import com.jfaf.calendario.domain.usecase.SaveAliasUseCase
 import com.jfaf.calendario.domain.usecase.SaveDayNoteUseCase
 import com.jfaf.calendario.domain.usecase.SaveShiftUseCase
 import com.jfaf.calendario.domain.usecase.SetAppStyleUseCase
@@ -42,6 +54,7 @@ import com.jfaf.calendario.domain.usecase.SignInUseCase
 import com.jfaf.calendario.domain.usecase.SignOutUseCase
 import com.jfaf.calendario.domain.usecase.SignUpUseCase
 import com.jfaf.calendario.domain.usecase.ToggleLocalHolidaysUseCase
+import com.jfaf.calendario.domain.usecase.UnblockUseCase
 import org.koin.dsl.module
 
 /** Casos de uso: una factoría por intención (ver `docs/revision-arquitectura.md`, Fase 6). */
@@ -88,4 +101,17 @@ val domainModule = module {
     factory { CheckForUpdateUseCase(get(), get()) }
     factory { ObserveDismissedUpdateUseCase(get()) }
     factory { DismissRecommendedUpdateUseCase(get()) }
+    factory { SaveAliasUseCase(get()) }
+    factory { RequestLinkUseCase(get()) }
+    factory { LoadSocialOverviewUseCase(get(), get()) }
+    factory { AcceptRequestUseCase(get()) }
+    factory { RejectRequestUseCase(get()) }
+    factory { BlockRequesterUseCase(get()) }
+    factory { UnblockUseCase(get()) }
+    factory { RevokeLinkUseCase(get()) }
+    factory { LoadSharedScheduleUseCase(get()) }
+    factory { ProposeSwapUseCase(get()) }
+    factory { RespondSwapUseCase(get()) }
+    factory { CancelSwapUseCase(get()) }
+    factory { BuildSwapOptionsUseCase(get(), get()) }
 }

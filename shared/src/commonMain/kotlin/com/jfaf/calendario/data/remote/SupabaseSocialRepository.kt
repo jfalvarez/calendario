@@ -8,7 +8,9 @@ import com.jfaf.calendario.domain.model.PendingRequest
 import com.jfaf.calendario.domain.model.SharedAssignment
 import com.jfaf.calendario.domain.model.SwapProposal
 import com.jfaf.calendario.domain.repository.SocialException
-import com.jfaf.calendario.domain.repository.SocialRepository
+import com.jfaf.calendario.domain.repository.LinkRepository
+import com.jfaf.calendario.domain.repository.PushTokenRepository
+import com.jfaf.calendario.domain.repository.SharedScheduleRepository
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.postgrest
@@ -19,7 +21,10 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
 /** Implementación contra Supabase: funciones RPC de `supabase/social.sql`. Los DTOs y su mapeo están en `SocialDtos.kt`. */
-class SupabaseSocialRepository(private val client: SupabaseClient) : SocialRepository {
+class SupabaseSocialRepository(private val client: SupabaseClient) :
+    LinkRepository,
+    SharedScheduleRepository,
+    PushTokenRepository {
 
     override suspend fun setAlias(alias: String): Result<String> = call {
         client.postgrest.rpc("set_my_alias", buildJsonObject { put("p_alias", alias.trim()) })

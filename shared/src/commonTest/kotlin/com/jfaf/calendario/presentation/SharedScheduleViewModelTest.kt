@@ -2,11 +2,14 @@ package com.jfaf.calendario.presentation
 
 import com.jfaf.calendario.domain.model.SharedAssignment
 import com.jfaf.calendario.domain.repository.TodayProvider
+import com.jfaf.calendario.domain.usecase.BuildSwapOptionsUseCase
+import com.jfaf.calendario.domain.usecase.LoadSharedScheduleUseCase
+import com.jfaf.calendario.domain.usecase.ProposeSwapUseCase
 import com.jfaf.calendario.domain.repository.SocialError
 import com.jfaf.calendario.fakes.FakeSocialRepository
 import com.jfaf.calendario.fakes.InMemoryShiftAssignmentRepository
 import com.jfaf.calendario.fakes.InMemoryShiftRepository
-import com.jfaf.calendario.presentation.social.MyShiftOption
+import com.jfaf.calendario.domain.model.MyShiftOption
 import com.jfaf.calendario.presentation.social.SharedScheduleViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -46,10 +49,10 @@ class SharedScheduleViewModelTest {
     private fun newVm() = SharedScheduleViewModel(
         ownerId = "owner-1",
         alias = "pepe",
-        social = social,
+        loadSchedule = LoadSharedScheduleUseCase(social),
+        proposeSwap = ProposeSwapUseCase(social),
+        buildSwapOptions = BuildSwapOptionsUseCase(shifts, assignments),
         today = TodayProvider { today },
-        localAssignments = assignments,
-        localShifts = shifts,
     )
 
     private val target = SharedAssignment(

@@ -9,14 +9,16 @@ import com.jfaf.calendario.domain.model.SharedAssignment
 import com.jfaf.calendario.domain.model.SwapProposal
 import com.jfaf.calendario.domain.repository.SocialError
 import com.jfaf.calendario.domain.repository.SocialException
-import com.jfaf.calendario.domain.repository.SocialRepository
+import com.jfaf.calendario.domain.repository.LinkRepository
+import com.jfaf.calendario.domain.repository.PushTokenRepository
+import com.jfaf.calendario.domain.repository.SharedScheduleRepository
 import kotlinx.datetime.LocalDate
 
 /**
- * Falso de [SocialRepository] con datos configurables. Si [error] no es null, toda operación falla con él.
+ * Falso de [LinkRepository], [SharedScheduleRepository] y [PushTokenRepository] con datos configurables. Si [error] no es null, toda operación falla con él.
  * [calls] registra las operaciones de escritura para comprobar que se llamaron (o no).
  */
-class FakeSocialRepository : SocialRepository {
+class FakeSocialRepository : LinkRepository, SharedScheduleRepository, PushTokenRepository {
     var error: SocialError? = null
     var alias: String? = null
     var pending: List<PendingRequest> = emptyList()

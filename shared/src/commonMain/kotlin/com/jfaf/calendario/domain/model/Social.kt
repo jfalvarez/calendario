@@ -83,3 +83,6 @@ fun SwapProposal.previewForMe(): List<SwapDayPreview> {
 
 /** Persona bloqueada por mí. `alias` puede ser null si nunca eligió alias. */
 data class BlockedUser(val id: String, val alias: String?)
+
+/** Un turno mío que puedo entregar en un cambio. `slot` es 0 o 1. */
+data class MyShiftOption(val date: LocalDate, val slot: Int, val shiftName: String)

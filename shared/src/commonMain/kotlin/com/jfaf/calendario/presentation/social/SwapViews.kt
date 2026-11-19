@@ -20,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.jfaf.calendario.domain.model.LinkDirection
+import com.jfaf.calendario.domain.model.MyShiftOption
 import com.jfaf.calendario.domain.model.SwapDayPreview
 import com.jfaf.calendario.domain.model.SwapProposal
 import com.jfaf.calendario.domain.model.SwapStatus
