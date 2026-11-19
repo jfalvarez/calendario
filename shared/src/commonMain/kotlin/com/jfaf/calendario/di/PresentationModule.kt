@@ -1,5 +1,6 @@
 package com.jfaf.calendario.di
 
+import com.jfaf.calendario.domain.platform.AppForegroundEvents
 import com.jfaf.calendario.presentation.backup.BackupViewModel
 import com.jfaf.calendario.presentation.calendar.CalendarViewModel
 import com.jfaf.calendario.presentation.calendar.DayEditingViewModel
@@ -12,7 +13,6 @@ import com.jfaf.calendario.presentation.shifts.ShiftsViewModel
 import com.jfaf.calendario.presentation.social.SharedScheduleViewModel
 import com.jfaf.calendario.presentation.social.SocialViewModel
 import com.jfaf.calendario.presentation.stats.StatsViewModel
-import com.jfaf.calendario.presentation.update.AppForegroundEvents
 import com.jfaf.calendario.presentation.update.UpdateViewModel
 import org.koin.core.module.dsl.viewModel
 import org.koin.core.module.dsl.viewModelOf

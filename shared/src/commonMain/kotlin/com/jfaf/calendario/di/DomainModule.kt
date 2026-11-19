@@ -14,6 +14,7 @@ import com.jfaf.calendario.domain.usecase.DeleteDayNoteUseCase
 import com.jfaf.calendario.domain.usecase.DeleteShiftUseCase
 import com.jfaf.calendario.domain.usecase.DismissRecommendedUpdateUseCase
 import com.jfaf.calendario.domain.usecase.ExportBackupUseCase
+import com.jfaf.calendario.domain.usecase.GetShiftsForDayUseCase
 import com.jfaf.calendario.domain.usecase.ImportBackupUseCase
 import com.jfaf.calendario.domain.usecase.LoadSharedScheduleUseCase
 import com.jfaf.calendario.domain.usecase.LoadSocialOverviewUseCase
@@ -34,7 +35,7 @@ import com.jfaf.calendario.domain.usecase.PaintDayUseCase
 import com.jfaf.calendario.domain.usecase.PasteDaysUseCase
 import com.jfaf.calendario.domain.usecase.PlanNextReminderUseCase
 import com.jfaf.calendario.domain.usecase.ProposeSwapUseCase
-import com.jfaf.calendario.domain.usecase.PushRegistration
+import com.jfaf.calendario.domain.usecase.RegisterPushTokenUseCase
 import com.jfaf.calendario.domain.usecase.RejectRequestUseCase
 import com.jfaf.calendario.domain.usecase.ReorderShiftsUseCase
 import com.jfaf.calendario.domain.usecase.RepeatDaysUseCase
@@ -56,6 +57,7 @@ import com.jfaf.calendario.domain.usecase.SignOutUseCase
 import com.jfaf.calendario.domain.usecase.SignUpUseCase
 import com.jfaf.calendario.domain.usecase.ToggleLocalHolidaysUseCase
 import com.jfaf.calendario.domain.usecase.UnblockUseCase
+import com.jfaf.calendario.domain.usecase.UnregisterPushTokenUseCase
 import org.koin.dsl.module
 
 /** Casos de uso: una factoría por intención (ver `docs/revision-arquitectura.md`, Fase 6). */
@@ -69,6 +71,7 @@ val domainModule = module {
     factory { SetReminderTimeUseCase(get()) }
     factory { PlanNextReminderUseCase(get(), get(), get()) }
     factory { ObserveDayNotesUseCase(get()) }
+    factory { GetShiftsForDayUseCase(get(), get()) }
     factory { ObserveNoteMarkersUseCase(get()) }
     factory { ObserveDebtsUseCase(get()) }
     factory { SaveDayNoteUseCase(get(), get()) }
@@ -82,7 +85,8 @@ val domainModule = module {
     factory { CompletePasswordResetUseCase(get()) }
     factory { ChangePasswordUseCase(get()) }
     factory { ObserveAuthStateUseCase(get()) }
-    factory { PushRegistration(get(), getOrNull()) }
+    factory { RegisterPushTokenUseCase(get(), getOrNull()) }
+    factory { UnregisterPushTokenUseCase(get(), getOrNull()) }
     factory { ExportBackupUseCase(get()) }
     factory { ImportBackupUseCase(get()) }
     factory { ObserveSyncStateUseCase(get()) }

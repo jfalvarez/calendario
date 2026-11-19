@@ -3,6 +3,7 @@ package com.jfaf.calendario.presentation
 import com.jfaf.calendario.domain.model.AuthState
 import com.jfaf.calendario.domain.model.LinkRequestResult
 import com.jfaf.calendario.domain.model.PendingRequest
+import com.jfaf.calendario.domain.platform.ForegroundNotifier
 import com.jfaf.calendario.domain.repository.SocialError
 import com.jfaf.calendario.domain.usecase.AcceptRequestUseCase
 import com.jfaf.calendario.domain.usecase.BlockRequesterUseCase
@@ -18,14 +19,6 @@ import com.jfaf.calendario.domain.usecase.UnblockUseCase
 import com.jfaf.calendario.fakes.FakeAuthRepository
 import com.jfaf.calendario.fakes.FakeSocialRepository
 import com.jfaf.calendario.presentation.social.SocialViewModel
-import com.jfaf.calendario.presentation.update.AppForegroundEvents
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.test.UnconfinedTestDispatcher
-import kotlinx.coroutines.test.resetMain
-import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.setMain
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -33,19 +26,26 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.setMain
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class SocialViewModelTest {
     private lateinit var social: FakeSocialRepository
     private lateinit var auth: FakeAuthRepository
-    private lateinit var foreground: AppForegroundEvents
+    private lateinit var foreground: ForegroundNotifier
 
     @BeforeTest
     fun setUp() {
         Dispatchers.setMain(UnconfinedTestDispatcher())
         social = FakeSocialRepository()
         auth = FakeAuthRepository(AuthState.SignedIn("user-1", "ana@correo.es"))
-        foreground = AppForegroundEvents()
+        foreground = ForegroundNotifier()
     }
 
     @AfterTest

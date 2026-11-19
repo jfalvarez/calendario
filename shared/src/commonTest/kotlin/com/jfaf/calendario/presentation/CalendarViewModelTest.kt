@@ -1,6 +1,7 @@
 package com.jfaf.calendario.presentation
 
 import com.jfaf.calendario.domain.model.CalendarMonth
+import com.jfaf.calendario.domain.platform.ForegroundNotifier
 import com.jfaf.calendario.domain.repository.TodayProvider
 import com.jfaf.calendario.domain.usecase.ObserveMonthUseCase
 import com.jfaf.calendario.domain.usecase.ObserveNoteMarkersUseCase
@@ -12,7 +13,10 @@ import com.jfaf.calendario.fakes.InMemoryShiftAssignmentRepository
 import com.jfaf.calendario.fakes.InMemoryShiftRepository
 import com.jfaf.calendario.presentation.calendar.CalendarMode
 import com.jfaf.calendario.presentation.calendar.CalendarViewModel
-import com.jfaf.calendario.presentation.update.AppForegroundEvents
+import kotlin.test.AfterTest
+import kotlin.test.BeforeTest
+import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
@@ -22,16 +26,12 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import kotlinx.datetime.LocalDate
-import kotlin.test.AfterTest
-import kotlin.test.BeforeTest
-import kotlin.test.Test
-import kotlin.test.assertEquals
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class CalendarViewModelTest {
     private var today = LocalDate(2026, 11, 19)
     private lateinit var assignments: InMemoryShiftAssignmentRepository
-    private lateinit var foreground: AppForegroundEvents
+    private lateinit var foreground: ForegroundNotifier
     private lateinit var vm: CalendarViewModel
 
     @BeforeTest
@@ -41,7 +41,7 @@ class CalendarViewModelTest {
         assignments = InMemoryShiftAssignmentRepository()
         val holidays = InMemoryLocalHolidayRepository()
         val notes = InMemoryDayNoteRepository()
-        foreground = AppForegroundEvents()
+        foreground = ForegroundNotifier()
         vm = CalendarViewModel(
             observeMonth = ObserveMonthUseCase(shifts, assignments, holidays),
             observeShifts = ObserveShiftsUseCase(shifts),

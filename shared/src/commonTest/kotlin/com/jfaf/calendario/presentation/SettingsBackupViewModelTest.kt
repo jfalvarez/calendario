@@ -19,10 +19,10 @@ import com.jfaf.calendario.domain.usecase.SetReminderTimeUseCase
 import com.jfaf.calendario.domain.usecase.SetThemeModeUseCase
 import com.jfaf.calendario.fakes.FakeClock
 import com.jfaf.calendario.fakes.FakeSettingsRepository
-import com.jfaf.calendario.presentation.backup.BackupFileIo
+import com.jfaf.calendario.domain.platform.BackupFileIo
 import com.jfaf.calendario.presentation.backup.BackupNotice
 import com.jfaf.calendario.presentation.backup.BackupViewModel
-import com.jfaf.calendario.presentation.settings.ReminderSystem
+import com.jfaf.calendario.domain.platform.ReminderSystem
 import com.jfaf.calendario.presentation.settings.SettingsViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi

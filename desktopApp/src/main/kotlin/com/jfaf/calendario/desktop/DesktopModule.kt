@@ -14,8 +14,8 @@ import com.jfaf.calendario.data.remote.SupabaseConfig
 import io.github.jan.supabase.auth.SessionManager
 import com.jfaf.calendario.domain.repository.AppVersionProvider
 import com.jfaf.calendario.domain.repository.ErrorReporter
-import com.jfaf.calendario.presentation.settings.ReminderSystem
-import com.jfaf.calendario.presentation.update.UpdateLauncher
+import com.jfaf.calendario.domain.platform.ReminderSystem
+import com.jfaf.calendario.domain.platform.UpdateLauncher
 import org.koin.dsl.module
 import java.io.File
 import java.awt.Desktop

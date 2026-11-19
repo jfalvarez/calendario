@@ -1,5 +1,6 @@
 package com.jfaf.calendario.desktop
 
+import com.jfaf.calendario.domain.repository.DiagnosticsTools
 import com.jfaf.calendario.domain.repository.ErrorReporter
 import io.sentry.Sentry
 import java.util.Properties
@@ -24,7 +25,7 @@ object CrashReporting {
     }
 }
 
-class SentryErrorReporter : ErrorReporter {
+class SentryErrorReporter : ErrorReporter, DiagnosticsTools {
     override fun report(error: Throwable, context: String) {
         if (!Sentry.isEnabled()) return
         Sentry.captureException(error) { scope -> scope.setTag("context", context) }

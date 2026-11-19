@@ -1,4 +1,4 @@
-package com.jfaf.calendario.presentation.settings
+package com.jfaf.calendario.domain.platform
 
 /** Lo que los avisos necesitan del sistema operativo; cada plataforma aporta el suyo. */
 interface ReminderSystem {

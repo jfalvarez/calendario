@@ -8,7 +8,7 @@ import com.jfaf.calendario.domain.usecase.ObserveMonthUseCase
 import com.jfaf.calendario.domain.usecase.ObserveNoteMarkersUseCase
 import com.jfaf.calendario.domain.usecase.ObserveShiftsUseCase
 import com.jfaf.calendario.domain.usecase.PaintDayUseCase
-import com.jfaf.calendario.presentation.update.AppForegroundEvents
+import com.jfaf.calendario.domain.platform.AppForegroundEvents
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted

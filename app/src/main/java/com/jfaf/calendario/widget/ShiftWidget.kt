@@ -34,7 +34,7 @@ import com.jfaf.calendario.domain.model.Shift
 import com.jfaf.calendario.domain.repository.TodayProvider
 import com.jfaf.calendario.domain.usecase.ObserveUpcomingDaysUseCase
 import kotlinx.coroutines.flow.first
-import org.koin.core.context.GlobalContext
+import com.jfaf.calendario.AndroidServiceLocator
 import androidx.compose.ui.unit.DpSize
 import androidx.glance.LocalSize
 import androidx.glance.appwidget.SizeMode
@@ -46,8 +46,7 @@ class ShiftWidget : GlanceAppWidget() {
     override val sizeMode = SizeMode.Responsive(setOf(NARROW, WIDE))
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val koin = GlobalContext.get()
-        val days = koin.get<ObserveUpcomingDaysUseCase>()(koin.get<TodayProvider>().today(), days = 2).first()
+        val days = AndroidServiceLocator.get<ObserveUpcomingDaysUseCase>()(AndroidServiceLocator.get<TodayProvider>().today(), days = 2).first()
         ShiftWidgetMidnight.schedule(context) // siguiente redibujado a medianoche, aunque no cambien datos
         provideContent { WidgetContent(context, days, withHours = LocalSize.current.width >= WIDE.width) }
     }

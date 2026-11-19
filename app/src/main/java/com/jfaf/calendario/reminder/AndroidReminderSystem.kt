@@ -9,7 +9,7 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
-import com.jfaf.calendario.presentation.settings.ReminderSystem
+import com.jfaf.calendario.domain.platform.ReminderSystem
 
 /** Permiso de notificaciones de Android (obligatorio pedirlo en Android 13+). Se enlaza a la actividad al crearse. */
 class AndroidReminderSystem(private val context: Context) : ReminderSystem {

@@ -21,7 +21,7 @@ import com.jfaf.calendario.domain.usecase.RespondSwapUseCase
 import com.jfaf.calendario.domain.usecase.RevokeLinkUseCase
 import com.jfaf.calendario.domain.usecase.SaveAliasUseCase
 import com.jfaf.calendario.domain.usecase.UnblockUseCase
-import com.jfaf.calendario.presentation.update.AppForegroundEvents
+import com.jfaf.calendario.domain.platform.AppForegroundEvents
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow

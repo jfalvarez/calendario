@@ -1,7 +1,5 @@
 package com.jfaf.calendario.reminder
 
-import com.jfaf.calendario.data.coroutines.AppDispatchers
-import com.jfaf.calendario.data.coroutines.DefaultAppDispatchers
 import com.jfaf.calendario.domain.repository.ReminderSettingsRepository
 import com.jfaf.calendario.domain.repository.ShiftAssignmentRepository
 import com.jfaf.calendario.domain.repository.ShiftRepository
@@ -25,9 +23,8 @@ class ReminderUpdater(
     private val assignments: ShiftAssignmentRepository,
     private val today: TodayProvider,
     private val scheduler: ReminderScheduler,
-    private val dispatchers: AppDispatchers = DefaultAppDispatchers,
+    private val scope: CoroutineScope,
 ) {
-    private val scope = CoroutineScope(SupervisorJob() + dispatchers.default)
     private var job: Job? = null
 
     fun start() {

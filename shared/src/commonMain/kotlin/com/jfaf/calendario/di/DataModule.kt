@@ -19,6 +19,8 @@ import com.jfaf.calendario.data.repository.SystemTodayProvider
 import com.jfaf.calendario.data.repository.UuidIdGenerator
 import com.jfaf.calendario.data.sync.SyncEngine
 import com.jfaf.calendario.data.sync.createSyncEngine
+import com.jfaf.calendario.domain.platform.AppForegroundEvents
+import com.jfaf.calendario.domain.platform.ForegroundNotifier
 import com.jfaf.calendario.domain.repository.AppConfigRepository
 import com.jfaf.calendario.domain.repository.AuthRepository
 import com.jfaf.calendario.domain.repository.BackupStore
@@ -34,7 +36,6 @@ import com.jfaf.calendario.domain.repository.ShiftAssignmentRepository
 import com.jfaf.calendario.domain.repository.ShiftRepository
 import com.jfaf.calendario.domain.repository.SyncRepository
 import com.jfaf.calendario.domain.repository.TodayProvider
-import com.jfaf.calendario.presentation.update.AppForegroundEvents
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.auth.SessionManager
@@ -46,6 +47,8 @@ import kotlin.time.ExperimentalTime
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.serialization.json.Json
+import org.koin.core.qualifier.named
+import org.koin.dsl.bind
 import org.koin.dsl.binds
 import org.koin.dsl.module
 
@@ -62,6 +65,7 @@ val dataModule = module {
     single<DayNoteRepository> { RoomDayNoteRepository(get(), get()) }
     single<Clock> { Clock.System }
     single<AppDispatchers> { DefaultAppDispatchers }
+    single(named("appScope")) { CoroutineScope(SupervisorJob() + get<AppDispatchers>().default) }
     single<TodayProvider> { SystemTodayProvider(get()) }
     single<IdGenerator> { UuidIdGenerator() }
     single<SupabaseClient> {
@@ -95,8 +99,8 @@ val dataModule = module {
     single<BackupStore> { RoomBackupStore(get(), get()) }
     single<RemoteDataSource> { SupabaseRemoteDataSource(get()) }
     single<AppConfigRepository> { SupabaseAppConfigRepository(get(), get()) }
-    single { createSyncEngine(get(), get(), get(), get(), CoroutineScope(SupervisorJob() + get<AppDispatchers>().default), clock = get(), errors = get()) }
+    single { createSyncEngine(get(), get(), get(), get(), get(named("appScope")), clock = get(), errors = get()) }
     single<SyncRepository> { get<SyncEngine>() }
     single { DataStoreSettingsRepository(get()) } binds arrayOf(SettingsRepository::class, ReminderSettingsRepository::class)
-    single { AppForegroundEvents() }
+    single { ForegroundNotifier() } bind AppForegroundEvents::class
 }

@@ -7,25 +7,18 @@ import com.jfaf.calendario.domain.usecase.ChangePasswordUseCase
 import com.jfaf.calendario.domain.usecase.CompletePasswordResetUseCase
 import com.jfaf.calendario.domain.usecase.ObserveAuthStateUseCase
 import com.jfaf.calendario.domain.usecase.ObserveSyncStateUseCase
-import com.jfaf.calendario.domain.usecase.PushRegistration
 import com.jfaf.calendario.domain.usecase.RequestPasswordResetUseCase
 import com.jfaf.calendario.domain.usecase.RequestSyncUseCase
 import com.jfaf.calendario.domain.usecase.SignInUseCase
 import com.jfaf.calendario.domain.usecase.SignOutUseCase
 import com.jfaf.calendario.domain.usecase.SignUpUseCase
+import com.jfaf.calendario.domain.usecase.UnregisterPushTokenUseCase
 import com.jfaf.calendario.fakes.FakeAuthRepository
 import com.jfaf.calendario.fakes.FakeSocialRepository
 import com.jfaf.calendario.fakes.FakeSyncRepository
 import com.jfaf.calendario.presentation.settings.AccountMode
 import com.jfaf.calendario.presentation.settings.AccountNotice
 import com.jfaf.calendario.presentation.settings.AccountViewModel
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.test.UnconfinedTestDispatcher
-import kotlinx.coroutines.test.resetMain
-import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.setMain
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -33,6 +26,13 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.setMain
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class AccountViewModelTest {
@@ -56,7 +56,7 @@ class AccountViewModelTest {
             requestPasswordReset = RequestPasswordResetUseCase(auth),
             completePasswordReset = CompletePasswordResetUseCase(auth),
             changePassword = ChangePasswordUseCase(auth),
-            pushRegistration = PushRegistration(social, null),
+            unregisterPush = UnregisterPushTokenUseCase(social, null),
         )
     }
 

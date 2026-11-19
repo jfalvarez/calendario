@@ -9,18 +9,16 @@ import android.content.Context
 import android.content.Intent
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import com.jfaf.calendario.AndroidServiceLocator
 import com.jfaf.calendario.MainActivity
 import com.jfaf.calendario.R
 import com.jfaf.calendario.domain.model.Shift
-import com.jfaf.calendario.domain.repository.ShiftAssignmentRepository
-import com.jfaf.calendario.domain.repository.ShiftRepository
+import com.jfaf.calendario.domain.usecase.GetShiftsForDayUseCase
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
-import org.koin.core.context.GlobalContext
+import org.koin.core.qualifier.named
 
 /** Suena la alarma de [ReminderScheduler]: muestra el turno del día siguiente y programa el siguiente aviso. */
 class ReminderReceiver : BroadcastReceiver() {
@@ -29,17 +27,14 @@ class ReminderReceiver : BroadcastReceiver() {
         val shiftDate = intent.getStringExtra(EXTRA_SHIFT_DATE)?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
         val triggerAt = intent.getStringExtra(EXTRA_TRIGGER_AT)?.let { runCatching { LocalDateTime.parse(it) }.getOrNull() }
         val pending = goAsync()
-        CoroutineScope(Dispatchers.Default).launch {
+        AndroidServiceLocator.get<CoroutineScope>(named("appScope")).launch {
             try {
-                val koin = GlobalContext.get()
                 if (shiftDate != null) {
                     // Se lee el turno en este momento (no al programar): si cambió entre tanto, el aviso es el correcto.
-                    val ids = koin.get<ShiftAssignmentRepository>().getShiftIds(shiftDate)
-                    val working = koin.get<ShiftRepository>().observeShifts().first()
-                        .filter { it.id in ids && it.startMinutes != null }
+                    val working = AndroidServiceLocator.get<GetShiftsForDayUseCase>()(shiftDate)
                     if (working.isNotEmpty()) show(context, working)
                 }
-                koin.get<ReminderScheduler>().reschedule(after = triggerAt)
+                AndroidServiceLocator.get<ReminderScheduler>().reschedule(after = triggerAt)
             } finally {
                 pending.finish()
             }
