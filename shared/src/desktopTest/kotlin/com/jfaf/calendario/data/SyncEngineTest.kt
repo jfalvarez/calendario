@@ -1,4 +1,5 @@
 @file:OptIn(kotlin.time.ExperimentalTime::class)
+
 package com.jfaf.calendario.data
 
 import androidx.room.Room
@@ -15,6 +16,7 @@ import com.jfaf.calendario.data.repository.RoomLocalHolidayRepository
 import com.jfaf.calendario.data.repository.RoomShiftAssignmentRepository
 import com.jfaf.calendario.data.repository.RoomShiftRepository
 import com.jfaf.calendario.data.sync.SyncEngine
+import com.jfaf.calendario.data.sync.createSyncEngine
 import com.jfaf.calendario.domain.model.AuthState
 import com.jfaf.calendario.domain.model.DayNote
 import com.jfaf.calendario.domain.model.NoteKind
@@ -39,7 +41,6 @@ import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
-
 
 /** Servidor falso que imita a Supabase: filas por (dueño, id), «último cambio gana» y cursor `server_updated_at`. */
 private class FakeRemote : RemoteDataSource {
@@ -120,7 +121,7 @@ private class Device(remote: FakeRemote) {
     val assignments = RoomShiftAssignmentRepository(db.shiftAssignmentDao(), Clock.System)
     val holidays = RoomLocalHolidayRepository(db.localHolidayDao(), Clock.System)
     val notes = RoomDayNoteRepository(db.dayNoteDao(), Clock.System)
-    val engine = SyncEngine(
+    val engine = createSyncEngine(
         db, remote,
         object : AuthRepository {
             override val authState: Flow<AuthState> = emptyFlow()
@@ -284,7 +285,7 @@ class ForegroundSyncTest {
         }
         val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
         val prefsFile = File.createTempFile("foreground", ".preferences_pb").also { it.delete() }
-        val engine = SyncEngine(
+        val engine = createSyncEngine(
             phone.db, remote, auth, createPreferencesDataStore(prefsFile.absolutePath, scope = scope), scope,
             periodMs = 3_600_000, debounceMs = 3_600_000, clock = clockOf { now }, // sólo cuenta el disparador de primer plano
         )

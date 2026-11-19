@@ -18,6 +18,7 @@ import com.jfaf.calendario.data.repository.RoomShiftRepository
 import com.jfaf.calendario.data.repository.SystemTodayProvider
 import com.jfaf.calendario.data.repository.UuidIdGenerator
 import com.jfaf.calendario.data.sync.SyncEngine
+import com.jfaf.calendario.data.sync.createSyncEngine
 import com.jfaf.calendario.domain.repository.AppConfigRepository
 import com.jfaf.calendario.domain.repository.AuthRepository
 import com.jfaf.calendario.domain.repository.BackupStore
@@ -94,7 +95,7 @@ val dataModule = module {
     single<BackupStore> { RoomBackupStore(get(), get()) }
     single<RemoteDataSource> { SupabaseRemoteDataSource(get()) }
     single<AppConfigRepository> { SupabaseAppConfigRepository(get(), get()) }
-    single { SyncEngine(get(), get(), get(), get(), CoroutineScope(SupervisorJob() + get<AppDispatchers>().default), clock = get(), errors = get()) }
+    single { createSyncEngine(get(), get(), get(), get(), CoroutineScope(SupervisorJob() + get<AppDispatchers>().default), clock = get(), errors = get()) }
     single<SyncRepository> { get<SyncEngine>() }
     single { DataStoreSettingsRepository(get()) } binds arrayOf(SettingsRepository::class, ReminderSettingsRepository::class)
     single { AppForegroundEvents() }
