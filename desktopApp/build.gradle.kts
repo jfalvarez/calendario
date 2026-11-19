@@ -28,8 +28,18 @@ compose.desktop {
     application {
         mainClass = "com.jfaf.calendario.desktop.MainKt"
 
+        buildTypes.release.proguard {
+            isEnabled.set(true)
+            // ProGuard 7.8 no lee los metadatos de Kotlin 2.4; 7.10 sí.
+            version.set("7.10.0")
+            // Reglas de las librerías (copiadas de META-INF/proguard) y reglas propias de ServiceLoader y Room.
+            configurationFiles.from(project.fileTree("proguard") { include("*.pro") })
+        }
+
         nativeDistributions {
             targetFormats(TargetFormat.Msi, TargetFormat.Deb, TargetFormat.Dmg)
+            // DataStore/protobuf usa sun.misc.Unsafe; el runtime empaquetado no lo incluye si no se añade este módulo
+            modules("jdk.unsupported")
             packageName = "NurseOClock"
             packageVersion = "1.0.0"
             description = "Calendario de turnos"
