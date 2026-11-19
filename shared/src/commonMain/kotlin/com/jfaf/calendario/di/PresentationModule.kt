@@ -2,6 +2,9 @@ package com.jfaf.calendario.di
 
 import com.jfaf.calendario.presentation.backup.BackupViewModel
 import com.jfaf.calendario.presentation.calendar.CalendarViewModel
+import com.jfaf.calendario.presentation.calendar.DayEditingViewModel
+import com.jfaf.calendario.presentation.calendar.DayNotesViewModel
+import com.jfaf.calendario.presentation.calendar.SyncStatusViewModel
 import com.jfaf.calendario.presentation.debts.DebtsViewModel
 import com.jfaf.calendario.presentation.settings.AccountViewModel
 import com.jfaf.calendario.presentation.settings.SettingsViewModel
@@ -18,6 +21,9 @@ import org.koin.dsl.module
 /** ViewModels de todas las pantallas. */
 val presentationModule = module {
     viewModelOf(::CalendarViewModel)
+    viewModelOf(::DayEditingViewModel)
+    viewModelOf(::DayNotesViewModel)
+    viewModelOf(::SyncStatusViewModel)
     viewModelOf(::ShiftsViewModel)
     viewModelOf(::SettingsViewModel)
     viewModelOf(::AccountViewModel)

@@ -23,6 +23,7 @@ import com.jfaf.calendario.domain.usecase.ObserveDayNotesUseCase
 import com.jfaf.calendario.domain.usecase.ObserveDebtsUseCase
 import com.jfaf.calendario.domain.usecase.ObserveDismissedUpdateUseCase
 import com.jfaf.calendario.domain.usecase.ObserveMonthUseCase
+import com.jfaf.calendario.domain.usecase.ObserveNoteMarkersUseCase
 import com.jfaf.calendario.domain.usecase.ObserveReminderSettingsUseCase
 import com.jfaf.calendario.domain.usecase.ObserveShiftsUseCase
 import com.jfaf.calendario.domain.usecase.ObserveStatsUseCase
@@ -68,6 +69,7 @@ val domainModule = module {
     factory { SetReminderTimeUseCase(get()) }
     factory { PlanNextReminderUseCase(get(), get(), get()) }
     factory { ObserveDayNotesUseCase(get()) }
+    factory { ObserveNoteMarkersUseCase(get()) }
     factory { ObserveDebtsUseCase(get()) }
     factory { SaveDayNoteUseCase(get(), get()) }
     factory { SetNoteSettledUseCase(get()) }
