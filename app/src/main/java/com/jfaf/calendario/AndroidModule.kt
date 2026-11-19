@@ -35,11 +35,11 @@ val androidModule = module {
     single { SupabaseConfig(BuildConfig.SUPABASE_URL, BuildConfig.SUPABASE_ANON_KEY) }
     single { AppPlatform("android") }
     single<com.jfaf.calendario.domain.repository.PushTokenProvider> { com.jfaf.calendario.push.FirebasePushTokenProvider() }
-    single { ShiftWidgetUpdater(androidContext(), get(), get()) }
+    single { ShiftWidgetUpdater(androidContext(), get(), get(), get()) }
     single { AndroidReminderSystem(androidContext()) } bind ReminderSystem::class
     single { ReminderScheduler(androidContext(), get()) }
     single<ErrorReporter> { SentryErrorReporter() }
-    single { ReminderUpdater(get(), get(), get(), get(), get()) }
+    single { ReminderUpdater(get(), get(), get(), get(), get(), get()) }
     // Play In-App Updates con la ficha de la tienda como plan B (ver PlayUpdateLauncher).
     single { PlayUpdateLauncher(androidContext(), get()) } bind UpdateLauncher::class
     single<AppVersionProvider> {

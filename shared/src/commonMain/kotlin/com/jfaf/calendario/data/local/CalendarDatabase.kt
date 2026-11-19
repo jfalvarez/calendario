@@ -9,7 +9,8 @@ import androidx.room.migration.Migration
 import androidx.sqlite.SQLiteConnection
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import androidx.sqlite.execSQL
-import kotlinx.coroutines.Dispatchers
+import com.jfaf.calendario.data.coroutines.AppDispatchers
+import com.jfaf.calendario.data.coroutines.DefaultAppDispatchers
 
 @Database(
     entities = [ShiftEntity::class, ShiftAssignmentEntity::class, LocalHolidayEntity::class, DayNoteEntity::class],
@@ -49,10 +50,13 @@ private val Migration3To4 = object : Migration(3, 4) {
  * Configuración común. Cada plataforma sólo aporta el builder con la ruta:
  * Android `Room.databaseBuilder(context, ruta)` y escritorio `Room.databaseBuilder(ruta)`.
  */
-fun buildCalendarDatabase(builder: RoomDatabase.Builder<CalendarDatabase>): CalendarDatabase =
+fun buildCalendarDatabase(
+    builder: RoomDatabase.Builder<CalendarDatabase>,
+    dispatchers: AppDispatchers = DefaultAppDispatchers,
+): CalendarDatabase =
     builder
         .setDriver(BundledSQLiteDriver())
-        .setQueryCoroutineContext(Dispatchers.IO)
+        .setQueryCoroutineContext(dispatchers.io)
         .addMigrations(Migration3To4)
         .addCallback(DefaultShiftsCallback)
         .build()

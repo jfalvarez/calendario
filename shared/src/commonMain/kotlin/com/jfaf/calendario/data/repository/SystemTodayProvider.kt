@@ -7,8 +7,11 @@ import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 
+/** "Hoy" a partir del reloj inyectado y la zona horaria del dispositivo (por defecto, la del sistema). */
 @OptIn(ExperimentalTime::class)
-class SystemTodayProvider : TodayProvider {
-    override fun today(): LocalDate =
-        Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+class SystemTodayProvider(
+    private val clock: Clock,
+    private val zone: TimeZone = TimeZone.currentSystemDefault(),
+) : TodayProvider {
+    override fun today(): LocalDate = clock.now().toLocalDateTime(zone).date
 }

@@ -1,3 +1,4 @@
+@file:OptIn(kotlin.time.ExperimentalTime::class)
 package com.jfaf.calendario.data
 
 import androidx.room.Room
@@ -5,8 +6,8 @@ import com.jfaf.calendario.data.local.CalendarDatabase
 import com.jfaf.calendario.data.local.buildCalendarDatabase
 import com.jfaf.calendario.data.prefs.createPreferencesDataStore
 import com.jfaf.calendario.data.remote.RemoteAssignment
-import com.jfaf.calendario.data.remote.RemoteDayNote
 import com.jfaf.calendario.data.remote.RemoteDataSource
+import com.jfaf.calendario.data.remote.RemoteDayNote
 import com.jfaf.calendario.data.remote.RemoteLocalHoliday
 import com.jfaf.calendario.data.remote.RemoteShift
 import com.jfaf.calendario.data.repository.RoomDayNoteRepository
@@ -14,12 +15,21 @@ import com.jfaf.calendario.data.repository.RoomLocalHolidayRepository
 import com.jfaf.calendario.data.repository.RoomShiftAssignmentRepository
 import com.jfaf.calendario.data.repository.RoomShiftRepository
 import com.jfaf.calendario.data.sync.SyncEngine
+import com.jfaf.calendario.domain.model.AuthState
 import com.jfaf.calendario.domain.model.DayNote
 import com.jfaf.calendario.domain.model.NoteKind
-import com.jfaf.calendario.domain.model.AuthState
 import com.jfaf.calendario.domain.model.Shift
 import com.jfaf.calendario.domain.model.SyncState
 import com.jfaf.calendario.domain.repository.AuthRepository
+import java.io.File
+import java.io.IOException
+import kotlin.test.AfterTest
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertIs
+import kotlin.test.assertTrue
+import kotlin.time.Clock
+import kotlin.time.Instant
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -29,13 +39,7 @@ import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
-import java.io.File
-import java.io.IOException
-import kotlin.test.AfterTest
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertIs
-import kotlin.test.assertTrue
+
 
 /** Servidor falso que imita a Supabase: filas por (dueño, id), «último cambio gana» y cursor `server_updated_at`. */
 private class FakeRemote : RemoteDataSource {
@@ -112,10 +116,10 @@ private class Device(remote: FakeRemote) {
     private val prefsFile = File.createTempFile("device", ".preferences_pb").also { it.delete() }
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     val db = buildCalendarDatabase(Room.databaseBuilder<CalendarDatabase>(dbFile.absolutePath))
-    val shifts = RoomShiftRepository(db.shiftDao())
-    val assignments = RoomShiftAssignmentRepository(db.shiftAssignmentDao())
-    val holidays = RoomLocalHolidayRepository(db.localHolidayDao())
-    val notes = RoomDayNoteRepository(db.dayNoteDao())
+    val shifts = RoomShiftRepository(db.shiftDao(), Clock.System)
+    val assignments = RoomShiftAssignmentRepository(db.shiftAssignmentDao(), Clock.System)
+    val holidays = RoomLocalHolidayRepository(db.localHolidayDao(), Clock.System)
+    val notes = RoomDayNoteRepository(db.dayNoteDao(), Clock.System)
     val engine = SyncEngine(
         db, remote,
         object : AuthRepository {
@@ -127,7 +131,7 @@ private class Device(remote: FakeRemote) {
             override suspend fun verifyRecoveryCode(email: String, code: String) = null
             override suspend fun updatePassword(newPassword: String) = null
         },
-        createPreferencesDataStore(prefsFile.absolutePath, scope), scope,
+        createPreferencesDataStore(prefsFile.absolutePath, scope = scope), scope,
     )
 
     fun close() {
@@ -281,8 +285,8 @@ class ForegroundSyncTest {
         val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
         val prefsFile = File.createTempFile("foreground", ".preferences_pb").also { it.delete() }
         val engine = SyncEngine(
-            phone.db, remote, auth, createPreferencesDataStore(prefsFile.absolutePath, scope), scope,
-            periodMs = 3_600_000, debounceMs = 3_600_000, clock = { now }, // sólo cuenta el disparador de primer plano
+            phone.db, remote, auth, createPreferencesDataStore(prefsFile.absolutePath, scope = scope), scope,
+            periodMs = 3_600_000, debounceMs = 3_600_000, clock = clockOf { now }, // sólo cuenta el disparador de primer plano
         )
         suspend fun waitUntil(what: String, check: suspend () -> Boolean) {
             kotlinx.coroutines.withTimeout(10_000) { while (!check()) kotlinx.coroutines.delay(50) }
@@ -449,4 +453,9 @@ class SyncEngineEdgeCasesTest {
         b.engine.syncNow("u2")
         assertEquals(emptyList(), b.ids())
     }
+}
+
+/** Reloj de prueba que lee [millis] en cada llamada. */
+private fun clockOf(millis: () -> Long): Clock = object : Clock {
+    override fun now(): Instant = Instant.fromEpochMilliseconds(millis())
 }

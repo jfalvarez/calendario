@@ -7,27 +7,35 @@ import com.jfaf.calendario.data.repository.RoomLocalHolidayRepository
 import com.jfaf.calendario.data.repository.RoomShiftAssignmentRepository
 import com.jfaf.calendario.data.repository.RoomShiftRepository
 import com.jfaf.calendario.domain.model.Shift
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.test.runTest
-import kotlinx.datetime.LocalDate
+import com.jfaf.calendario.fakes.FakeClock
 import java.io.File
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.runTest
+import kotlinx.datetime.LocalDate
 
 class RoomRepositoriesTest {
     private val file = File.createTempFile("calendario-test", ".db")
     private val db = buildCalendarDatabase(Room.databaseBuilder<CalendarDatabase>(file.absolutePath))
-    private val shifts = RoomShiftRepository(db.shiftDao())
-    private val assignments = RoomShiftAssignmentRepository(db.shiftAssignmentDao())
-    private val holidays = RoomLocalHolidayRepository(db.localHolidayDao())
+    private val clock = FakeClock(1_700_000_000_000L)
+    private val shifts = RoomShiftRepository(db.shiftDao(), clock)
+    private val assignments = RoomShiftAssignmentRepository(db.shiftAssignmentDao(), clock)
+    private val holidays = RoomLocalHolidayRepository(db.localHolidayDao(), clock)
     private val day = LocalDate(2025, 11, 12)
 
     @AfterTest
     fun tearDown() {
         db.close()
         file.delete()
+    }
+
+    @Test
+    fun upsertStampsUpdatedAtFromTheInjectedClock() = runTest {
+        shifts.upsert(Shift("x9", "Refuerzo", "R", 0xFF00FF00))
+        assertEquals(1_700_000_000_000L, db.shiftDao().get("x9")?.updatedAt)
     }
 
     @Test

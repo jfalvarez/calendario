@@ -22,7 +22,7 @@ class SettingsRepositoryTest {
         try {
             // La subcarpeta `datastore` aún no existe: DataStore debe crearla.
             val repo = DataStoreSettingsRepository(
-                createPreferencesDataStore(File(dir, "datastore/$USER_PREFERENCES_FILE").absolutePath, scope)
+                createPreferencesDataStore(File(dir, "datastore/$USER_PREFERENCES_FILE").absolutePath, scope = scope)
             )
             assertEquals(ThemeMode.System, repo.observeThemeMode().first())
             repo.setThemeMode(ThemeMode.Dark)

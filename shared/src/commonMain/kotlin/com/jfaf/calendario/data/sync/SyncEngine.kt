@@ -9,13 +9,14 @@ import com.jfaf.calendario.data.local.CalendarDatabase
 import com.jfaf.calendario.data.local.defaultShiftEntities
 import com.jfaf.calendario.data.remote.RemoteDataSource
 import com.jfaf.calendario.data.remote.looksOffline
-import com.jfaf.calendario.data.repository.nowMillis
 import com.jfaf.calendario.domain.model.AuthState
 import com.jfaf.calendario.domain.model.SyncState
 import com.jfaf.calendario.domain.repository.AuthRepository
 import com.jfaf.calendario.domain.repository.ErrorReporter
 import com.jfaf.calendario.domain.repository.NoOpErrorReporter
 import com.jfaf.calendario.domain.repository.SyncRepository
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -40,7 +41,7 @@ import kotlinx.coroutines.sync.withLock
  * `dirty` (push) y descarga las novedades del servidor (pull) fusionándolas por «último cambio gana».
  * Ver docs 07-sincronizacion-supabase.
  */
-@OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
+@OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class, ExperimentalTime::class)
 class SyncEngine(
     private val db: CalendarDatabase,
     private val remote: RemoteDataSource,
@@ -49,7 +50,7 @@ class SyncEngine(
     private val scope: CoroutineScope,
     private val periodMs: Long = DEFAULT_PERIOD_MS,
     private val debounceMs: Long = DEBOUNCE_MS,
-    private val clock: () -> Long = ::nowMillis,
+    private val clock: Clock = Clock.System,
     private val errors: ErrorReporter = NoOpErrorReporter,
 ) : SyncRepository {
     private val shiftDao = db.shiftDao()
@@ -70,7 +71,7 @@ class SyncEngine(
     }
 
     override fun requestSyncIfStale() {
-        if (isStale(lastSyncedAt, clock(), SyncRepository.STALE_AFTER_MS)) requestSync()
+        if (isStale(lastSyncedAt, clock.now().toEpochMilliseconds(), SyncRepository.STALE_AFTER_MS)) requestSync()
     }
 
     /** Arranca el motor: se activa al iniciar sesión y se detiene al cerrarla. */
@@ -116,7 +117,7 @@ class SyncEngine(
             adoptAccount(userId)
             push(userId)
             pull(userId)
-            lastSyncedAt = clock()
+            lastSyncedAt = clock.now().toEpochMilliseconds()
             _state.value = SyncState.Idle(lastSyncedAt)
         } catch (e: CancellationException) {
             throw e

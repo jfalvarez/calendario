@@ -1,6 +1,8 @@
 package com.jfaf.calendario.di
 
 import com.jfaf.calendario.data.backup.RoomBackupStore
+import com.jfaf.calendario.data.coroutines.AppDispatchers
+import com.jfaf.calendario.data.coroutines.DefaultAppDispatchers
 import com.jfaf.calendario.data.local.CalendarDatabase
 import com.jfaf.calendario.data.prefs.DataStoreSettingsRepository
 import com.jfaf.calendario.data.remote.RemoteDataSource
@@ -36,24 +38,28 @@ import io.github.jan.supabase.auth.SessionManager
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.serializer.KotlinXSerializer
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.serialization.json.Json
 import org.koin.dsl.binds
 import org.koin.dsl.module
 
 /** Persistencia, Supabase y sincronización. `CalendarDatabase`, `DataStore<Preferences>` y `SupabaseConfig` los aporta cada plataforma. */
+@OptIn(ExperimentalTime::class)
 val dataModule = module {
     single { get<CalendarDatabase>().shiftDao() }
     single { get<CalendarDatabase>().shiftAssignmentDao() }
-    single<ShiftRepository> { RoomShiftRepository(get()) }
-    single<ShiftAssignmentRepository> { RoomShiftAssignmentRepository(get()) }
+    single<ShiftRepository> { RoomShiftRepository(get(), get()) }
+    single<ShiftAssignmentRepository> { RoomShiftAssignmentRepository(get(), get()) }
     single { get<CalendarDatabase>().localHolidayDao() }
-    single<LocalHolidayRepository> { RoomLocalHolidayRepository(get()) }
+    single<LocalHolidayRepository> { RoomLocalHolidayRepository(get(), get()) }
     single { get<CalendarDatabase>().dayNoteDao() }
-    single<DayNoteRepository> { RoomDayNoteRepository(get()) }
-    single<TodayProvider> { SystemTodayProvider() }
+    single<DayNoteRepository> { RoomDayNoteRepository(get(), get()) }
+    single<Clock> { Clock.System }
+    single<AppDispatchers> { DefaultAppDispatchers }
+    single<TodayProvider> { SystemTodayProvider(get()) }
     single<IdGenerator> { UuidIdGenerator() }
     single<SupabaseClient> {
         val config = get<SupabaseConfig>()
@@ -79,10 +85,10 @@ val dataModule = module {
     }
     single<AuthRepository> { SupabaseAuthRepository(get()) }
     single<SocialRepository> { SupabaseSocialRepository(get()) }
-    single<BackupStore> { RoomBackupStore(get()) }
+    single<BackupStore> { RoomBackupStore(get(), get()) }
     single<RemoteDataSource> { SupabaseRemoteDataSource(get()) }
     single<AppConfigRepository> { SupabaseAppConfigRepository(get(), get()) }
-    single { SyncEngine(get(), get(), get(), get(), CoroutineScope(SupervisorJob() + Dispatchers.Default), errors = get()) }
+    single { SyncEngine(get(), get(), get(), get(), CoroutineScope(SupervisorJob() + get<AppDispatchers>().default), clock = get(), errors = get()) }
     single<SyncRepository> { get<SyncEngine>() }
     single { DataStoreSettingsRepository(get()) } binds arrayOf(SettingsRepository::class, ReminderSettingsRepository::class)
     single { AppForegroundEvents() }

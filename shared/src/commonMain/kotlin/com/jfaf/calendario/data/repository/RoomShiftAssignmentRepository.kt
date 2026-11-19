@@ -3,11 +3,14 @@ package com.jfaf.calendario.data.repository
 import com.jfaf.calendario.data.local.ShiftAssignmentDao
 import com.jfaf.calendario.data.local.ShiftAssignmentEntity
 import com.jfaf.calendario.domain.repository.ShiftAssignmentRepository
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.datetime.LocalDate
 
-class RoomShiftAssignmentRepository(private val dao: ShiftAssignmentDao) : ShiftAssignmentRepository {
+@OptIn(ExperimentalTime::class)
+class RoomShiftAssignmentRepository(private val dao: ShiftAssignmentDao, private val clock: Clock) : ShiftAssignmentRepository {
 
     override fun observeAssignments(from: LocalDate, to: LocalDate): Flow<Map<LocalDate, List<String>>> =
         dao.observeAlive(from.toString(), to.toString()).map { rows ->
@@ -30,7 +33,7 @@ class RoomShiftAssignmentRepository(private val dao: ShiftAssignmentDao) : Shift
         if (changes.isEmpty()) return
         val existing = dao.getInRange(changes.keys.min().toString(), changes.keys.max().toString())
             .groupBy { it.date }
-        val now = nowMillis()
+        val now = clock.now().toEpochMilliseconds()
         val rows = changes.flatMap { (date, ids) ->
             val key = date.toString()
             val bySlot = existing[key].orEmpty().associateBy { it.slot }

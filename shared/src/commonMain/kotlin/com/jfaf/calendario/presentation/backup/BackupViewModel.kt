@@ -5,13 +5,13 @@ import androidx.lifecycle.viewModelScope
 import com.jfaf.calendario.domain.repository.TodayProvider
 import com.jfaf.calendario.domain.usecase.ExportBackupUseCase
 import com.jfaf.calendario.domain.usecase.ImportBackupUseCase
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlin.time.Clock
-import kotlin.time.ExperimentalTime
 
 /** Resultado de la última acción de copia, para mostrarlo en Ajustes. */
 enum class BackupNotice { Exported, Imported, InvalidFile, Failed }
@@ -23,22 +23,23 @@ data class BackupUiState(
     val pendingImport: String? = null,
 )
 
+@OptIn(ExperimentalTime::class)
 class BackupViewModel(
     private val export: ExportBackupUseCase,
     private val import: ImportBackupUseCase,
     private val today: TodayProvider,
+    private val clock: Clock,
 ) : ViewModel() {
 
     private val state = MutableStateFlow(BackupUiState())
     val uiState: StateFlow<BackupUiState> = state.asStateFlow()
 
     /** Guarda la copia completa (JSON) y, después, las dos hojas en CSV para leer en Excel. */
-    @OptIn(ExperimentalTime::class)
     fun exportAll(io: BackupFileIo) {
         if (state.value.busy) return
         state.update { it.copy(busy = true, notice = null) }
         viewModelScope.launch {
-            val files = export(Clock.System.now().toString())
+            val files = export(clock.now().toString())
             val stamp = today.today().toString()
             io.save("calendario-$stamp.json", "application/json", files.json) { saved ->
                 if (!saved) return@save finish(BackupNotice.Failed)
