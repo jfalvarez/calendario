@@ -63,6 +63,8 @@
     <string name="selected_count">%1$d días seleccionados</string>
     <string name="assign_shift">Asignar turno</string>
     <string name="as_second_shift">Añadir como segundo turno</string>
+    <string name="shift_conflict_title">Turnos solapados</string>
+    <string name="shift_conflict_text">No se puede añadir el segundo turno en: %1$s. El día ya tiene dos turnos o el nuevo se solapa en horas con el que tiene. No se ha cambiado nada.</string>
     <string name="copy">Copiar</string>
     <string name="cut">Cortar</string>
     <string name="paste">Pegar</string>
