@@ -63,6 +63,8 @@ class CalendarViewModel(
     private var today = todayProvider.today()
     private val month = MutableStateFlow(CalendarMonth.of(today))
     private val paintShiftId = MutableStateFlow<String?>(null)
+    /** Modo Pintar: el turno pintado se añade como segundo turno en vez de sustituir. */
+    private val paintAsSecond = MutableStateFlow(false)
     private val mode = MutableStateFlow(CalendarMode.Paint)
     private val selection = MutableStateFlow<Set<LocalDate>>(emptySet())
     private val clipboard = MutableStateFlow<DayPattern?>(null)
@@ -120,12 +122,12 @@ class CalendarViewModel(
         month,
         threeMonths,
         observeShifts(),
-        paintShiftId,
+        combine(paintShiftId, paintAsSecond) { id, second -> id to second },
         combine(editState, notesState) { edit, notes -> edit to notes },
-    ) { m, (prevWeeks, weeks, nextWeeks), shifts, paintId, (edit, notes) ->
+    ) { m, (prevWeeks, weeks, nextWeeks), shifts, (paintId, paintSecond), (edit, notes) ->
         CalendarUiState(
             month = m, today = today, weeks = weeks, prevWeeks = prevWeeks, nextWeeks = nextWeeks,
-            shifts = shifts, paintShiftId = paintId,
+            shifts = shifts, paintShiftId = paintId, paintAsSecond = paintSecond,
             mode = edit.mode, selection = edit.selection, hasClipboard = edit.hasClipboard, dialog = edit.dialog,
             syncIndicator = edit.syncIndicator, noteMarkers = notes.markers, notesDialog = notes.dialog,
         )
@@ -150,9 +152,16 @@ class CalendarViewModel(
     /** Pulsar el turno activo lo desactiva. */
     fun onShiftSelected(id: String) = paintShiftId.update { if (it == id) null else id }
 
+    fun onPaintSecondChange(on: Boolean) { paintAsSecond.value = on }
+
     fun onDayClick(date: LocalDate) {
         when (mode.value) {
-            CalendarMode.Paint -> paintShiftId.value?.let { id -> viewModelScope.launch { paintDay(date, id) } }
+            CalendarMode.Paint -> paintShiftId.value?.let { id ->
+                viewModelScope.launch {
+                    val refused = paintDay(date, id, paintAsSecond.value)
+                    if (refused) dialog.value = CalendarDialog.ShiftConflict(listOf(date))
+                }
+            }
             CalendarMode.Notes -> notesDate.value = date
             CalendarMode.Edit -> {
                 selection.update { if (date in it) it - date else it + date }
@@ -211,8 +220,8 @@ class CalendarViewModel(
     fun onDeleteNote(id: String) { viewModelScope.launch { deleteNote(id) } }
 
     fun onAssign(shiftId: String, asSecond: Boolean) = withSelection { dates ->
-        dialog.value = null
-        assignShift(dates, shiftId, asSecond)
+        val conflicts = assignShift(dates, shiftId, asSecond)
+        dialog.value = if (conflicts.isEmpty()) null else CalendarDialog.ShiftConflict(conflicts)
     }
 
     fun onRepeat(times: Int) = withSelection { dates ->

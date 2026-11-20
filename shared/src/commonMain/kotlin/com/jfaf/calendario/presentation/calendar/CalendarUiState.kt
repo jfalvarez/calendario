@@ -10,7 +10,12 @@ import kotlinx.datetime.LocalDate
 /** Pintar: elegir un turno y tocar días. Editar: seleccionar días y aplicar acciones sobre ellos. */
 enum class CalendarMode { Paint, Edit, Notes }
 
-enum class CalendarDialog { Assign, Repeat }
+sealed interface CalendarDialog {
+    data object Assign : CalendarDialog
+    data object Repeat : CalendarDialog
+    /** Asignar un segundo turno chocaría en horas con otro del mismo día: [dates] son esos días. */
+    data class ShiftConflict(val dates: List<LocalDate>) : CalendarDialog
+}
 
 /** Notas del día abierto en el modo Notas, y personas ya usadas en deudas (para sugerirlas al escribir). */
 data class NotesDialogState(val date: LocalDate, val notes: List<DayNote>, val knownPeople: List<String>)
@@ -26,6 +31,8 @@ data class CalendarUiState(
     val shifts: List<Shift> = emptyList(),
     /** Turno activo del modo Pintar; null = pintar desactivado. */
     val paintShiftId: String? = null,
+    /** Modo Pintar: añadir el turno como segundo en vez de sustituir. */
+    val paintAsSecond: Boolean = false,
     val mode: CalendarMode = CalendarMode.Paint,
     /** Días seleccionados (modo Editar). */
     val selection: Set<LocalDate> = emptySet(),

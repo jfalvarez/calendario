@@ -86,6 +86,7 @@ import com.jfaf.calendario.domain.model.AppStyle
 import com.jfaf.calendario.presentation.theme.LocalAppStyle
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.input.KeyboardType
@@ -124,6 +125,7 @@ class CalendarActions(
     val onOpenDebts: () -> Unit = {},
     val onModeChange: (CalendarMode) -> Unit = {},
     val onShiftSelected: (String) -> Unit = {},
+    val onPaintSecondChange: (Boolean) -> Unit = {},
     val onDayClick: (LocalDate) -> Unit = {},
     val onDayLongPress: (LocalDate) -> Unit = {},
     val onClearSelection: () -> Unit = {},
@@ -167,6 +169,7 @@ fun CalendarScreen(
             onOpenDebts = onOpenDebts,
             onModeChange = viewModel::onModeChange,
             onShiftSelected = viewModel::onShiftSelected,
+            onPaintSecondChange = viewModel::onPaintSecondChange,
             onDayClick = viewModel::onDayClick,
             onDayLongPress = viewModel::onDayLongPress,
             onClearSelection = viewModel::onClearSelection,
@@ -335,12 +338,13 @@ fun CalendarContent(
         }
     }
 
-    when (state.dialog) {
+    when (val open = state.dialog) {
         CalendarDialog.Assign -> AssignDialog(state.shifts, actions.onDismissDialog) { shiftId, asSecond ->
             haptics.performHapticFeedback(HapticFeedbackType.ContextClick)
             actions.onAssign(shiftId, asSecond)
         }
         CalendarDialog.Repeat -> RepeatDialog(actions.onDismissDialog, actions.onRepeat)
+        is CalendarDialog.ShiftConflict -> ShiftConflictDialog(open.dates, actions.onDismissDialog)
         null -> Unit
     }
 
@@ -363,8 +367,12 @@ private fun PaintBar(state: CalendarUiState, actions: CalendarActions) {
         style = MaterialTheme.typography.labelSmall,
         modifier = Modifier.padding(top = 8.dp),
     )
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Switch(checked = state.paintAsSecond, onCheckedChange = actions.onPaintSecondChange)
+        Text(stringResource(Res.string.as_second_shift), style = MaterialTheme.typography.labelMedium)
+    }
     Row(
-        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         state.shifts.forEach { shift ->
@@ -468,6 +476,18 @@ private fun AssignDialog(
 }
 
 @Composable
+private fun ShiftConflictDialog(dates: List<LocalDate>, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(Res.string.shift_conflict_title)) },
+        text = {
+            Text(stringResource(Res.string.shift_conflict_text, dates.joinToString { "${it.day}/${it.month.ordinal + 1}" }))
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.accept)) } },
+    )
+}
+
+@Composable
 private fun RepeatDialog(onDismiss: () -> Unit, onRepeat: (Int) -> Unit) {
     var text by remember { mutableStateOf("1") }
     val times = text.toIntOrNull()
@@ -517,9 +537,10 @@ private fun RowScope.DayCell(
     val background by animateColorAsState(if (isSelected) colors.primaryContainer else base)
     val scale by animateFloatAsState(if (isSelected) 0.93f else 1f, spring(dampingRatio = Spring.DampingRatioMediumBouncy))
     val shape = MaterialTheme.shapes.small
-    // Festivo (nacional o local): el número del día siempre en rojo, sea cual sea el fondo.
+    // Festivo (nacional o local): el número del día siempre en rojo intenso, sea cual sea el fondo.
+    val holidayRed = if (colors.surface.luminance() < 0.5f) Color(0xFFFF4D4D) else Color(0xFFD00000)
     val numberColor = when {
-        day.holiday != null -> colors.error
+        day.holiday != null -> holidayRed
         isSelected -> colors.onPrimaryContainer
         fillShift != null -> fillShift.color.onShiftColor
         style == AppStyle.Sorbete && isToday -> colors.onPrimary
@@ -552,7 +573,10 @@ private fun RowScope.DayCell(
             ) {
                 Text(
                     "${day.date.day}", fontSize = 12.sp,
-                    fontWeight = if (isToday) FontWeight.ExtraBold else FontWeight.Medium,
+                    fontWeight = when {
+                        day.holiday != null || isToday -> FontWeight.ExtraBold
+                        else -> FontWeight.Medium
+                    },
                     color = if (isToday && day.holiday == null) colors.onPrimary else numberColor,
                 )
             }
@@ -562,7 +586,7 @@ private fun RowScope.DayCell(
         } else {
             Text(
                 "${day.date.day}", fontSize = 12.sp,
-                fontWeight = if (isToday || fillShift != null) FontWeight.ExtraBold else FontWeight.SemiBold,
+                fontWeight = if (isToday || fillShift != null || day.holiday != null) FontWeight.ExtraBold else FontWeight.SemiBold,
                 color = numberColor,
             )
             if (fillShift != null) {
