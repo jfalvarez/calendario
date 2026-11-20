@@ -30,6 +30,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -68,8 +69,10 @@ internal fun RowScope.DayCell(
     val scale by animateFloatAsState(if (isSelected) 0.93f else 1f, spring(dampingRatio = Spring.DampingRatioMediumBouncy))
     val shape = MaterialTheme.shapes.small
     // Festivo (nacional o local): el número del día siempre en rojo, sea cual sea el fondo.
+    // Festivo (nacional o local): el número del día siempre en rojo intenso, sea cual sea el fondo.
+    val holidayRed = if (colors.surface.luminance() < 0.5f) Color(0xFFFF4D4D) else Color(0xFFD00000)
     val numberColor = when {
-        day.holiday != null -> colors.error
+        day.holiday != null -> holidayRed
         isSelected -> colors.onPrimaryContainer
         fillShift != null -> fillShift.color.onShiftColor
         style == AppStyle.Sorbete && isToday -> colors.onPrimary
@@ -102,7 +105,7 @@ internal fun RowScope.DayCell(
             ) {
                 Text(
                     "${day.date.day}", fontSize = 12.sp,
-                    fontWeight = if (isToday) FontWeight.ExtraBold else FontWeight.Medium,
+                    fontWeight = if (day.holiday != null || isToday) FontWeight.ExtraBold else FontWeight.Medium,
                     color = if (isToday && day.holiday == null) colors.onPrimary else numberColor,
                 )
             }
@@ -112,7 +115,7 @@ internal fun RowScope.DayCell(
         } else {
             Text(
                 "${day.date.day}", fontSize = 12.sp,
-                fontWeight = if (isToday || fillShift != null) FontWeight.ExtraBold else FontWeight.SemiBold,
+                fontWeight = if (isToday || fillShift != null || day.holiday != null) FontWeight.ExtraBold else FontWeight.SemiBold,
                 color = numberColor,
             )
             if (fillShift != null) {

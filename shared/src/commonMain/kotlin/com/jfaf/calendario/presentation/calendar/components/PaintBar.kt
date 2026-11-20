@@ -3,7 +3,9 @@ package com.jfaf.calendario.presentation.calendar.components
 import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -23,10 +25,12 @@ import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -35,6 +39,8 @@ import com.jfaf.calendario.presentation.calendar.*
 import com.jfaf.calendario.presentation.common.color
 import com.jfaf.calendario.presentation.common.onShiftColor
 import com.jfaf.calendario.resources.*
+import com.jfaf.calendario.resources.Res
+import com.jfaf.calendario.resources.as_second_shift
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
@@ -44,8 +50,12 @@ internal fun PaintBar(state: CalendarUiState, actions: CalendarActions) {
         style = MaterialTheme.typography.labelSmall,
         modifier = Modifier.padding(top = 8.dp),
     )
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Switch(checked = state.paintAsSecond, onCheckedChange = actions.onPaintSecondChange)
+        Text(stringResource(Res.string.as_second_shift), style = MaterialTheme.typography.labelMedium)
+    }
     Row(
-        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         state.shifts.forEach { shift ->

@@ -45,6 +45,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.jfaf.calendario.domain.model.CalendarDay
 import com.jfaf.calendario.presentation.calendar.components.*
+import com.jfaf.calendario.presentation.calendar.components.ShiftConflictDialog
 import com.jfaf.calendario.presentation.common.color
 import com.jfaf.calendario.presentation.social.RequestsChip
 import com.jfaf.calendario.resources.*
@@ -199,12 +200,13 @@ fun CalendarContent(
         }
     }
 
-    when (state.dialog) {
+    when (val open = state.dialog) {
         CalendarDialog.Assign -> AssignDialog(state.shifts, actions.onDismissDialog) { shiftId, asSecond ->
             haptics.performHapticFeedback(HapticFeedbackType.ContextClick)
             actions.onAssign(shiftId, asSecond)
         }
         CalendarDialog.Repeat -> RepeatDialog(actions.onDismissDialog, actions.onRepeat)
+        is CalendarDialog.ShiftConflict -> ShiftConflictDialog(open.dates, actions.onDismissDialog)
         null -> Unit
     }
 

@@ -77,7 +77,7 @@ val domainModule = module {
     factory { SaveDayNoteUseCase(get(), get()) }
     factory { SetNoteSettledUseCase(get()) }
     factory { DeleteDayNoteUseCase(get()) }
-    factory { PaintDayUseCase(get()) }
+    factory { PaintDayUseCase(get(), get()) }
     factory { SignInUseCase(get()) }
     factory { SignUpUseCase(get()) }
     factory { SignOutUseCase(get()) }
@@ -99,7 +99,7 @@ val domainModule = module {
     factory { PasteDaysUseCase(get()) }
     factory { ClearDaysUseCase(get()) }
     factory { ToggleLocalHolidaysUseCase(get()) }
-    factory { AssignShiftToDaysUseCase(get()) }
+    factory { AssignShiftToDaysUseCase(get(), get()) }
     factory { RepeatDaysUseCase(get()) }
     factory { SaveShiftUseCase(get(), get()) }
     factory { DeleteShiftUseCase(get()) }

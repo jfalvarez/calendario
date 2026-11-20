@@ -2,6 +2,7 @@ package com.jfaf.calendario.domain.usecase
 
 import com.jfaf.calendario.domain.model.DayPattern
 import com.jfaf.calendario.fakes.InMemoryShiftAssignmentRepository
+import com.jfaf.calendario.fakes.InMemoryShiftRepository
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
@@ -12,7 +13,7 @@ class EditDaysUseCasesTest {
     private val copy = CopyDaysUseCase(repo)
     private val paste = PasteDaysUseCase(repo)
     private val clear = ClearDaysUseCase(repo)
-    private val assign = AssignShiftToDaysUseCase(repo)
+    private val assign = AssignShiftToDaysUseCase(repo, InMemoryShiftRepository())
     private val repeat = RepeatDaysUseCase(repo)
 
     private fun d(day: Int) = LocalDate(2025, 11, day)

@@ -8,6 +8,7 @@ import com.jfaf.calendario.domain.usecase.RepeatDaysUseCase
 import com.jfaf.calendario.domain.usecase.ToggleLocalHolidaysUseCase
 import com.jfaf.calendario.fakes.InMemoryLocalHolidayRepository
 import com.jfaf.calendario.fakes.InMemoryShiftAssignmentRepository
+import com.jfaf.calendario.fakes.InMemoryShiftRepository
 import com.jfaf.calendario.presentation.calendar.CalendarDialog
 import com.jfaf.calendario.presentation.calendar.DayEditingViewModel
 import kotlinx.coroutines.Dispatchers
@@ -41,7 +42,7 @@ class DayEditingViewModelTest {
             copyDays = CopyDaysUseCase(assignments),
             pasteDays = PasteDaysUseCase(assignments),
             clearDays = ClearDaysUseCase(assignments),
-            assignShift = AssignShiftToDaysUseCase(assignments),
+            assignShift = AssignShiftToDaysUseCase(assignments, InMemoryShiftRepository()),
             repeatDays = RepeatDaysUseCase(assignments),
             toggleLocalHolidays = ToggleLocalHolidaysUseCase(holidays),
         )

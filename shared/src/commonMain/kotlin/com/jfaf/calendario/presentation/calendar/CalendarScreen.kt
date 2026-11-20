@@ -24,6 +24,7 @@ class CalendarActions(
     val onOpenDebts: () -> Unit = {},
     val onModeChange: (CalendarMode) -> Unit = {},
     val onShiftSelected: (String) -> Unit = {},
+    val onPaintSecondChange: (Boolean) -> Unit = {},
     val onDayClick: (LocalDate) -> Unit = {},
     val onDayLongPress: (LocalDate) -> Unit = {},
     val onClearSelection: () -> Unit = {},
@@ -65,7 +66,7 @@ fun CalendarScreen(
     val state = base.copy(
         selection = edit.selection,
         hasClipboard = edit.hasClipboard,
-        dialog = edit.dialog,
+        dialog = edit.dialog ?: base.dialog,
         syncIndicator = sync,
         notesDialog = notes,
     )
@@ -85,6 +86,7 @@ fun CalendarScreen(
                 notesViewModel.onReset()
             },
             onShiftSelected = viewModel::onShiftSelected,
+            onPaintSecondChange = viewModel::onPaintSecondChange,
             onDayClick = { date ->
                 when (base.mode) {
                     CalendarMode.Paint -> viewModel.onPaintDay(date)
@@ -101,7 +103,10 @@ fun CalendarScreen(
             onToggleLocalHoliday = editingViewModel::onToggleLocalHoliday,
             onAssignClick = editingViewModel::onAssignClick,
             onRepeatClick = editingViewModel::onRepeatClick,
-            onDismissDialog = editingViewModel::onDismissDialog,
+            onDismissDialog = {
+                editingViewModel.onDismissDialog()
+                viewModel.onDismissPaintConflict()
+            },
             onAssign = editingViewModel::onAssign,
             onRepeat = editingViewModel::onRepeat,
             onSyncClick = syncViewModel::onSyncClick,

@@ -93,8 +93,8 @@ class DayEditingViewModel(
     fun onDismissDialog() { dialog.value = null }
 
     fun onAssign(shiftId: String, asSecond: Boolean) = withSelection { dates ->
-        dialog.value = null
-        assignShift(dates, shiftId, asSecond)
+        val conflicts = assignShift(dates, shiftId, asSecond)
+        dialog.value = if (conflicts.isEmpty()) null else CalendarDialog.ShiftConflict(conflicts)
     }
 
     fun onRepeat(times: Int) = withSelection { dates ->
