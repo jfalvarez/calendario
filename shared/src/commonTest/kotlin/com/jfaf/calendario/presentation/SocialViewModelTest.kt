@@ -5,17 +5,12 @@ import com.jfaf.calendario.domain.model.LinkRequestResult
 import com.jfaf.calendario.domain.model.PendingRequest
 import com.jfaf.calendario.domain.platform.ForegroundNotifier
 import com.jfaf.calendario.domain.repository.SocialError
-import com.jfaf.calendario.domain.usecase.AcceptRequestUseCase
-import com.jfaf.calendario.domain.usecase.BlockRequesterUseCase
-import com.jfaf.calendario.domain.usecase.CancelSwapUseCase
 import com.jfaf.calendario.domain.usecase.LoadSocialOverviewUseCase
+import com.jfaf.calendario.domain.usecase.ManageLinksUseCase
+import com.jfaf.calendario.domain.usecase.ManageSwapsUseCase
 import com.jfaf.calendario.domain.usecase.ObserveAuthStateUseCase
-import com.jfaf.calendario.domain.usecase.RejectRequestUseCase
 import com.jfaf.calendario.domain.usecase.RequestLinkUseCase
-import com.jfaf.calendario.domain.usecase.RespondSwapUseCase
-import com.jfaf.calendario.domain.usecase.RevokeLinkUseCase
 import com.jfaf.calendario.domain.usecase.SaveAliasUseCase
-import com.jfaf.calendario.domain.usecase.UnblockUseCase
 import com.jfaf.calendario.fakes.FakeAuthRepository
 import com.jfaf.calendario.fakes.FakeSocialRepository
 import com.jfaf.calendario.presentation.social.SocialViewModel
@@ -55,13 +50,8 @@ class SocialViewModelTest {
         loadOverview = LoadSocialOverviewUseCase(social, social),
         saveAliasUseCase = SaveAliasUseCase(social),
         requestLinkUseCase = RequestLinkUseCase(social),
-        acceptRequest = AcceptRequestUseCase(social),
-        rejectRequest = RejectRequestUseCase(social),
-        blockRequester = BlockRequesterUseCase(social),
-        unblockUser = UnblockUseCase(social),
-        revokeLink = RevokeLinkUseCase(social),
-        respondSwapUseCase = RespondSwapUseCase(social),
-        cancelSwapUseCase = CancelSwapUseCase(social),
+        links = ManageLinksUseCase(social),
+        swaps = ManageSwapsUseCase(social),
         observeAuth = ObserveAuthStateUseCase(auth),
         foregroundEvents = foreground,
     )

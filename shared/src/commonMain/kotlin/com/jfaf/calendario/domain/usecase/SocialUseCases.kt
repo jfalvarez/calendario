@@ -62,25 +62,10 @@ class LoadSocialOverviewUseCase(
     )
 }
 
-class AcceptRequestUseCase(private val links: LinkRepository) {
-    suspend operator fun invoke(linkId: String): Result<Unit> = links.acceptRequest(linkId)
-}
 
-class RejectRequestUseCase(private val links: LinkRepository) {
-    suspend operator fun invoke(linkId: String): Result<Unit> = links.rejectRequest(linkId)
-}
 
-class BlockRequesterUseCase(private val links: LinkRepository) {
-    suspend operator fun invoke(linkId: String): Result<Unit> = links.blockRequester(linkId)
-}
 
-class UnblockUseCase(private val links: LinkRepository) {
-    suspend operator fun invoke(blockedId: String): Result<Unit> = links.unblock(blockedId)
-}
 
-class RevokeLinkUseCase(private val links: LinkRepository) {
-    suspend operator fun invoke(linkId: String): Result<Unit> = links.revokeLink(linkId)
-}
 
 class LoadSharedScheduleUseCase(private val schedule: SharedScheduleRepository) {
     suspend operator fun invoke(ownerId: String, month: CalendarMonth): Result<List<SharedAssignment>> =
@@ -97,14 +82,7 @@ class ProposeSwapUseCase(private val schedule: SharedScheduleRepository) {
     ): Result<Unit> = schedule.proposeSwap(targetId, proposerDate, proposerSlot, targetDate, targetSlot)
 }
 
-/** Aceptar (true) o rechazar (false) una propuesta que me han hecho. */
-class RespondSwapUseCase(private val schedule: SharedScheduleRepository) {
-    suspend operator fun invoke(swapId: String, accept: Boolean): Result<Unit> = schedule.respondSwap(swapId, accept)
-}
 
-class CancelSwapUseCase(private val schedule: SharedScheduleRepository) {
-    suspend operator fun invoke(swapId: String): Result<Unit> = schedule.cancelSwap(swapId)
-}
 
 /**
  * Mis turnos que puedo ofrecer en un cambio: los de [SWAP_WINDOW_DAYS] días desde [from], con su nombre,
@@ -123,4 +101,19 @@ class BuildSwapOptionsUseCase(
             }
             .sortedWith(compareBy({ it.date }, { it.slot }))
     }
+}
+
+/** Acciones sobre vínculos: aceptar, rechazar, bloquear, desbloquear y revocar. Un caso de uso por intención, agrupados. */
+class ManageLinksUseCase(private val links: LinkRepository) {
+    suspend fun accept(linkId: String): Result<Unit> = links.acceptRequest(linkId)
+    suspend fun reject(linkId: String): Result<Unit> = links.rejectRequest(linkId)
+    suspend fun block(linkId: String): Result<Unit> = links.blockRequester(linkId)
+    suspend fun unblock(blockedId: String): Result<Unit> = links.unblock(blockedId)
+    suspend fun revoke(linkId: String): Result<Unit> = links.revokeLink(linkId)
+}
+
+/** Acciones sobre propuestas de cambio de turno: aceptar o rechazar una que me han hecho, o cancelar una mía. */
+class ManageSwapsUseCase(private val schedule: SharedScheduleRepository) {
+    suspend fun respond(swapId: String, accept: Boolean): Result<Unit> = schedule.respondSwap(swapId, accept)
+    suspend fun cancel(swapId: String): Result<Unit> = schedule.cancelSwap(swapId)
 }

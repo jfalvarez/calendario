@@ -8,20 +8,15 @@ import com.jfaf.calendario.domain.model.LinkRequestResult
 import com.jfaf.calendario.domain.model.LinkSummary
 import com.jfaf.calendario.domain.model.PendingRequest
 import com.jfaf.calendario.domain.model.SwapProposal
+import com.jfaf.calendario.domain.platform.AppForegroundEvents
 import com.jfaf.calendario.domain.repository.SocialError
 import com.jfaf.calendario.domain.repository.toSocialError
-import com.jfaf.calendario.domain.usecase.AcceptRequestUseCase
-import com.jfaf.calendario.domain.usecase.BlockRequesterUseCase
-import com.jfaf.calendario.domain.usecase.CancelSwapUseCase
 import com.jfaf.calendario.domain.usecase.LoadSocialOverviewUseCase
+import com.jfaf.calendario.domain.usecase.ManageLinksUseCase
+import com.jfaf.calendario.domain.usecase.ManageSwapsUseCase
 import com.jfaf.calendario.domain.usecase.ObserveAuthStateUseCase
-import com.jfaf.calendario.domain.usecase.RejectRequestUseCase
 import com.jfaf.calendario.domain.usecase.RequestLinkUseCase
-import com.jfaf.calendario.domain.usecase.RespondSwapUseCase
-import com.jfaf.calendario.domain.usecase.RevokeLinkUseCase
 import com.jfaf.calendario.domain.usecase.SaveAliasUseCase
-import com.jfaf.calendario.domain.usecase.UnblockUseCase
-import com.jfaf.calendario.domain.platform.AppForegroundEvents
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -55,13 +50,8 @@ class SocialViewModel(
     private val loadOverview: LoadSocialOverviewUseCase,
     private val saveAliasUseCase: SaveAliasUseCase,
     private val requestLinkUseCase: RequestLinkUseCase,
-    private val acceptRequest: AcceptRequestUseCase,
-    private val rejectRequest: RejectRequestUseCase,
-    private val blockRequester: BlockRequesterUseCase,
-    private val unblockUser: UnblockUseCase,
-    private val revokeLink: RevokeLinkUseCase,
-    private val respondSwapUseCase: RespondSwapUseCase,
-    private val cancelSwapUseCase: CancelSwapUseCase,
+    private val links: ManageLinksUseCase,
+    private val swaps: ManageSwapsUseCase,
     observeAuth: ObserveAuthStateUseCase,
     foregroundEvents: AppForegroundEvents,
 ) : ViewModel() {
@@ -107,15 +97,15 @@ class SocialViewModel(
         }
     }
 
-    fun accept(linkId: String) = perform { acceptRequest(linkId) }
-    fun reject(linkId: String) = perform { rejectRequest(linkId) }
-    fun block(linkId: String) = perform { blockRequester(linkId) }
-    fun unblock(blockedId: String) = perform { unblockUser(blockedId) }
-    fun revoke(linkId: String) = perform { revokeLink(linkId) }
+    fun accept(linkId: String) = perform { links.accept(linkId) }
+    fun reject(linkId: String) = perform { links.reject(linkId) }
+    fun block(linkId: String) = perform { links.block(linkId) }
+    fun unblock(blockedId: String) = perform { links.unblock(blockedId) }
+    fun revoke(linkId: String) = perform { links.revoke(linkId) }
 
     /** Aceptar o rechazar una propuesta que me han hecho. Al aceptar, el servidor cambia los dos calendarios. */
-    fun respondSwap(swapId: String, accept: Boolean) = perform { respondSwapUseCase(swapId, accept) }
-    fun cancelSwap(swapId: String) = perform { cancelSwapUseCase(swapId) }
+    fun respondSwap(swapId: String, accept: Boolean) = perform { swaps.respond(swapId, accept) }
+    fun cancelSwap(swapId: String) = perform { swaps.cancel(swapId) }
 
     /** Borra avisos de la última acción, por ejemplo al volver a escribir en el campo. */
     fun clearMessages() = state.update {
