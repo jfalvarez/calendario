@@ -63,11 +63,13 @@ class SharedScheduleViewModel(
         }
     }
 
-    /** Abre la propuesta sobre un turno del compañero, con mis turnos de los próximos días como opciones. */
+    /** Abre la propuesta sobre un turno del compañero, con mis turnos de los próximos días como opciones.
+     * Si ya hay una abierta (o se está abriendo), un nuevo toque no la reemplaza: no se pierde la opción elegida. */
     fun openProposal(target: SharedAssignment) {
+        if (state.value.proposal != null) return
         viewModelScope.launch {
             val options: List<MyShiftOption> = buildSwapOptions(todayDate)
-            state.update { it.copy(proposal = ProposalDraft(target, options)) }
+            state.update { s -> if (s.proposal != null) s else s.copy(proposal = ProposalDraft(target, options)) }
         }
     }
 

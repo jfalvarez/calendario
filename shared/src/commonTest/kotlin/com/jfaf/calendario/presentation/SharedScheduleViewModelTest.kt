@@ -154,6 +154,18 @@ class SharedScheduleViewModelTest {
     }
 
     @Test
+    fun openingAgainKeepsTheOpenProposalAndItsSelection() = runTest(UnconfinedTestDispatcher()) {
+        assignments.setShiftIds(LocalDate(2026, 11, 21), listOf("default-morning"))
+        val vm = newVm()
+        backgroundScope.launch { vm.uiState.collect {} }
+        vm.openProposal(target)
+        val option = vm.uiState.value.proposal!!.options.single()
+        vm.selectOption(option)
+        vm.openProposal(target)
+        assertEquals(option, vm.uiState.value.proposal?.selected)
+    }
+
+    @Test
     fun sendWithoutSelectionDoesNothing() = runTest(UnconfinedTestDispatcher()) {
         val vm = newVm()
         backgroundScope.launch { vm.uiState.collect {} }
