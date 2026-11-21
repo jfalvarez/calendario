@@ -98,3 +98,17 @@ internal fun looksOffline(e: Throwable): Boolean {
     }
     return false
 }
+
+/**
+ * Token caducado que no se ha podido renovar (PostgREST `PGRST303` / «JWT expired»): la sesión ya no sirve y hay
+ * que volver a iniciarla. No es un fallo de la app ni de la red.
+ */
+internal fun looksExpiredSession(e: Throwable): Boolean {
+    var current: Throwable? = e
+    while (current != null) {
+        val text = current.message.orEmpty()
+        if ("JWT expired" in text || "PGRST303" in text) return true
+        current = current.cause
+    }
+    return false
+}

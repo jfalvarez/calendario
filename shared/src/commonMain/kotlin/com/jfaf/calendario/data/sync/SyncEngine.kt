@@ -1,6 +1,7 @@
 package com.jfaf.calendario.data.sync
 
 import co.touchlab.kermit.Logger
+import com.jfaf.calendario.data.remote.looksExpiredSession
 import com.jfaf.calendario.data.remote.looksOffline
 import com.jfaf.calendario.domain.model.AuthState
 import com.jfaf.calendario.domain.model.SyncState
@@ -111,6 +112,11 @@ class SyncEngine(
             throw e
         } catch (e: Throwable) {
             log.w(e) { "Fallo de sincronización" }
+            if (looksExpiredSession(e)) {
+                // El token no se renueva: la sesión ya no sirve. Se cierra para pedir entrar otra vez; no se informa como fallo.
+                scope.launch { auth.signOut() }
+                return@withLock
+            }
             // Sin conexión es lo normal en un móvil; cualquier otro fallo sí interesa.
             if (!looksOffline(e)) errors.report(e, "sync")
             _state.value = SyncState.Failed(offline = looksOffline(e))
