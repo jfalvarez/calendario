@@ -15,7 +15,6 @@ import com.jfaf.calendario.data.repository.RoomDayNoteRepository
 import com.jfaf.calendario.data.repository.RoomLocalHolidayRepository
 import com.jfaf.calendario.data.repository.RoomShiftAssignmentRepository
 import com.jfaf.calendario.data.repository.RoomShiftRepository
-import com.jfaf.calendario.data.sync.SyncEngine
 import com.jfaf.calendario.data.sync.createSyncEngine
 import com.jfaf.calendario.domain.model.AuthState
 import com.jfaf.calendario.domain.model.DayNote

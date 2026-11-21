@@ -32,7 +32,7 @@ import org.jetbrains.compose.resources.stringResource
 
 /** Fecha corta "dd/mm". */
 internal fun LocalDate.short(): String =
-    "${day.toString().padStart(2, '0')}/${monthNumber.toString().padStart(2, '0')}"
+    "${day.toString().padStart(2, '0')}/${(month.ordinal + 1).toString().padStart(2, '0')}"
 
 /** Antes y después de mi calendario para cada día que cambia. Lo que se ve aquí es lo que pasaría al aceptar. */
 @Composable

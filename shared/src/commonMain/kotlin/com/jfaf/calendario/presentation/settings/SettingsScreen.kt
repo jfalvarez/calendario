@@ -23,7 +23,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -63,7 +62,6 @@ import com.jfaf.calendario.resources.accept
 import com.jfaf.calendario.resources.app_style
 import com.jfaf.calendario.resources.back
 import com.jfaf.calendario.resources.cancel
-import com.jfaf.calendario.resources.diagnostics_title
 import com.jfaf.calendario.resources.reminder_enable
 import com.jfaf.calendario.resources.reminder_enable_desc
 import com.jfaf.calendario.resources.reminder_permission_denied
@@ -77,8 +75,6 @@ import com.jfaf.calendario.resources.style_pop
 import com.jfaf.calendario.resources.style_pop_desc
 import com.jfaf.calendario.resources.style_sorbete
 import com.jfaf.calendario.resources.style_sorbete_desc
-import com.jfaf.calendario.resources.test_report_send
-import com.jfaf.calendario.resources.test_report_sent
 import com.jfaf.calendario.resources.theme
 import com.jfaf.calendario.resources.theme_dark
 import com.jfaf.calendario.resources.theme_light

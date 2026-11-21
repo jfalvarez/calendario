@@ -8,7 +8,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.StickyNote2
+import androidx.compose.material.icons.automirrored.filled.StickyNote2
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -35,7 +35,7 @@ internal fun NoteMarker(markers: DayNoteMarkers) {
         horizontalArrangement = Arrangement.spacedBy(3.dp, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        if (markers.hasNote) Icon(Icons.Filled.StickyNote2, null, Modifier.size(13.dp), tint = content)
+        if (markers.hasNote) Icon(Icons.AutoMirrored.Filled.StickyNote2, null, Modifier.size(13.dp), tint = content)
         if (markers.hasOpenDebt) Icon(Icons.Filled.SwapHoriz, null, Modifier.size(15.dp), tint = content)
     }
 }

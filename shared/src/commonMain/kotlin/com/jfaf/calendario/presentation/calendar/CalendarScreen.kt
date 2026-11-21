@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import com.jfaf.calendario.domain.model.DayNoteDraft
 import com.jfaf.calendario.presentation.calendar.components.*
@@ -70,7 +71,8 @@ fun CalendarScreen(
         syncIndicator = sync,
         notesDialog = notes,
     )
-    // Las acciones leen `base` al pulsarse, así que siempre ven el modo actual.
+    // Las acciones leen el modo al pulsarse (no el del momento de componer), así que siempre ven el modo actual.
+    val currentMode by rememberUpdatedState(base.mode)
     val actions = remember(viewModel, editingViewModel, notesViewModel, syncViewModel, onOpenShifts, onOpenSettings, onOpenStats, onOpenDebts) {
         CalendarActions(
             onPreviousMonth = viewModel::onPreviousMonth,
@@ -88,13 +90,13 @@ fun CalendarScreen(
             onShiftSelected = viewModel::onShiftSelected,
             onPaintSecondChange = viewModel::onPaintSecondChange,
             onDayClick = { date ->
-                when (base.mode) {
-                    CalendarMode.Paint -> viewModel.onPaintDay(date)
-                    CalendarMode.Edit -> editingViewModel.onDayToggle(date)
-                    CalendarMode.Notes -> notesViewModel.onDayClick(date)
+                when (dayTapAction(currentMode)) {
+                    DayTapAction.Paint -> viewModel.onPaintDay(date)
+                    DayTapAction.Select -> editingViewModel.onDayToggle(date)
+                    DayTapAction.OpenNotes -> notesViewModel.onDayClick(date)
                 }
             },
-            onDayLongPress = { date -> if (base.mode == CalendarMode.Edit) editingViewModel.onDayLongPress(date) },
+            onDayLongPress = { date -> if (longPressSelectsRange(currentMode)) editingViewModel.onDayLongPress(date) },
             onClearSelection = editingViewModel::onClearSelection,
             onCopy = editingViewModel::onCopy,
             onCut = editingViewModel::onCut,
