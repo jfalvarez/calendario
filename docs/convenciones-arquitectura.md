@@ -19,7 +19,7 @@ Complementa `docs/revision-arquitectura.md` (sección 4). Estas reglas se mantie
 
 ## Informes de errores
 
-`ErrorReporter` es el puerto de informes (solo `report`). Las herramientas de diagnóstico (`canSendTest`, `sendTestReport`) están aparte, en `DiagnosticsTools`, y solo las implementan las plataformas que las ofrecen.
+`ErrorReporter` es el puerto de informes (solo `report`). Cada plataforma lo implementa con Sentry. No hay un canal de "informe de prueba" desde Ajustes: se quitó porque ya no tenía interfaz (commit a7ba8e0).
 
 ## Casos de uso triviales: se mantienen
 

@@ -2,7 +2,6 @@ package com.jfaf.calendario.crash
 
 import android.app.Application
 import com.jfaf.calendario.BuildConfig
-import com.jfaf.calendario.domain.repository.DiagnosticsTools
 import com.jfaf.calendario.domain.repository.ErrorReporter
 import io.sentry.Sentry
 import io.sentry.android.core.SentryAndroid
@@ -29,16 +28,9 @@ object CrashReporting {
     }
 }
 
-class SentryErrorReporter : ErrorReporter, DiagnosticsTools {
+class SentryErrorReporter : ErrorReporter {
     override fun report(error: Throwable, context: String) {
         if (!Sentry.isEnabled()) return
         Sentry.captureException(error) { scope -> scope.setTag("context", context) }
-    }
-
-    // Sólo en compilaciones de prueba: la versión publicada («release») no ofrece el botón.
-    override val canSendTest: Boolean get() = Sentry.isEnabled() && BuildConfig.BUILD_TYPE != "release"
-
-    override fun sendTestReport() {
-        Sentry.captureException(RuntimeException("Informe de prueba de NurseOClock"))
     }
 }

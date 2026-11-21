@@ -9,14 +9,6 @@ interface ErrorReporter {
     fun report(error: Throwable, context: String)
 }
 
-/** Herramientas de diagnóstico que sólo algunas plataformas ofrecen (no forman parte del puerto de informes). */
-interface DiagnosticsTools {
-    /** `true` si en esta compilación se puede mandar un informe de prueba desde Ajustes (no en la versión publicada). */
-    val canSendTest: Boolean
-
-    fun sendTestReport()
-}
-
 /** Sin informes (clave no configurada o pruebas). */
 object NoOpErrorReporter : ErrorReporter {
     override fun report(error: Throwable, context: String) = Unit
