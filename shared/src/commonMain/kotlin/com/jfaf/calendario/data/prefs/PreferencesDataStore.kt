@@ -3,8 +3,9 @@ package com.jfaf.calendario.data.prefs
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
+import com.jfaf.calendario.data.coroutines.AppDispatchers
+import com.jfaf.calendario.data.coroutines.DefaultAppDispatchers
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import okio.Path.Companion.toPath
 
@@ -17,6 +18,7 @@ const val USER_PREFERENCES_FILE = "user_prefs.preferences_pb"
  */
 fun createPreferencesDataStore(
     path: String,
-    scope: CoroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob()),
+    dispatchers: AppDispatchers = DefaultAppDispatchers,
+    scope: CoroutineScope = CoroutineScope(dispatchers.io + SupervisorJob()),
 ): DataStore<Preferences> =
     PreferenceDataStoreFactory.createWithPath(scope = scope, produceFile = { path.toPath() })

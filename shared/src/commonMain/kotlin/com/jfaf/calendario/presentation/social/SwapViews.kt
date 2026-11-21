@@ -20,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.jfaf.calendario.domain.model.LinkDirection
+import com.jfaf.calendario.domain.model.MyShiftOption
 import com.jfaf.calendario.domain.model.SwapDayPreview
 import com.jfaf.calendario.domain.model.SwapProposal
 import com.jfaf.calendario.domain.model.SwapStatus
@@ -31,7 +32,7 @@ import org.jetbrains.compose.resources.stringResource
 
 /** Fecha corta "dd/mm". */
 internal fun LocalDate.short(): String =
-    "${day.toString().padStart(2, '0')}/${monthNumber.toString().padStart(2, '0')}"
+    "${day.toString().padStart(2, '0')}/${(month.ordinal + 1).toString().padStart(2, '0')}"
 
 /** Antes y después de mi calendario para cada día que cambia. Lo que se ve aquí es lo que pasaría al aceptar. */
 @Composable

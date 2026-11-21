@@ -13,8 +13,9 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.lifecycleScope
 import com.jfaf.calendario.domain.model.AuthState
+import com.jfaf.calendario.backup.AndroidBackupFileIo
 import com.jfaf.calendario.domain.usecase.ObserveAuthStateUseCase
-import com.jfaf.calendario.domain.usecase.PushRegistration
+import com.jfaf.calendario.domain.usecase.RegisterPushTokenUseCase
 import com.jfaf.calendario.presentation.App
 import com.jfaf.calendario.reminder.AndroidReminderSystem
 import kotlinx.coroutines.flow.filterIsInstance
@@ -25,9 +26,9 @@ class MainActivity : ComponentActivity() {
     private val updateLauncher: PlayUpdateLauncher by inject()
     private val reminderSystem: AndroidReminderSystem by inject()
     private val observeAuth: ObserveAuthStateUseCase by inject()
-    private val pushRegistration: PushRegistration by inject()
+    private val registerPush: RegisterPushTokenUseCase by inject()
     private val notificationPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
-    private val backupIo = com.jfaf.calendario.backup.AndroidBackupFileIo(this)
+    private val backupIo = AndroidBackupFileIo(this)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen() // antes de super.onCreate: pasa de Theme.Calendario.Starting a Theme.Calendario
@@ -39,16 +40,18 @@ class MainActivity : ComponentActivity() {
             notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
         lifecycleScope.launch {
-            observeAuth().filterIsInstance<AuthState.SignedIn>().collect { pushRegistration.register() }
+            observeAuth().filterIsInstance<AuthState.SignedIn>().collect { registerPush() }
         }
         setContent {
-            App(backupIo = backupIo, onDarkThemeChanged = { dark ->
-                // Iconos de las barras del sistema legibles según el tema elegido en la app (no sólo el del sistema).
-                val style = if (dark) SystemBarStyle.dark(Color.TRANSPARENT)
-                else SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
-                enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
-            })
+            App(backupIo = backupIo, onDarkThemeChanged = ::applySystemBars)
         }
+    }
+
+    // Iconos de las barras del sistema legibles según el tema elegido en la app (no sólo el del sistema).
+    private fun applySystemBars(dark: Boolean) {
+        val style = if (dark) SystemBarStyle.dark(Color.TRANSPARENT)
+        else SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
+        enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
     }
 
     override fun onResume() {

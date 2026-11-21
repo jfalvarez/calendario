@@ -3,73 +3,27 @@ package com.jfaf.calendario.presentation.social
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jfaf.calendario.domain.model.CalendarMonth
-import com.jfaf.calendario.domain.model.LinkDirection
 import com.jfaf.calendario.domain.model.SharedAssignment
-import com.jfaf.calendario.domain.model.SwapDayPreview
-import com.jfaf.calendario.domain.model.SwapProposal
-import com.jfaf.calendario.domain.model.SwapStatus
-import com.jfaf.calendario.domain.model.previewForMe
-import com.jfaf.calendario.domain.repository.ShiftAssignmentRepository
-import com.jfaf.calendario.domain.repository.ShiftRepository
 import com.jfaf.calendario.domain.repository.SocialError
-import com.jfaf.calendario.domain.repository.SocialException
-import com.jfaf.calendario.domain.repository.SocialRepository
 import com.jfaf.calendario.domain.repository.TodayProvider
+import com.jfaf.calendario.domain.repository.toSocialError
+import com.jfaf.calendario.domain.model.MyShiftOption
+import com.jfaf.calendario.domain.usecase.BuildSwapOptionsUseCase
+import com.jfaf.calendario.domain.usecase.LoadSharedScheduleUseCase
+import com.jfaf.calendario.domain.usecase.ProposeSwapUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.datetime.DatePeriod
-import kotlinx.datetime.LocalDate
-
-/** Un turno mío que puedo entregar en un cambio. `slot` es 0 o 1. */
-data class MyShiftOption(val date: LocalDate, val slot: Int, val shiftName: String)
-
-/** Propuesta en curso sobre un turno del compañero: el turno de él y los míos que puedo ofrecer. */
-data class ProposalDraft(
-    val target: SharedAssignment,
-    val options: List<MyShiftOption>,
-    val selected: MyShiftOption? = null,
-    val sending: Boolean = false,
-    val error: SocialError? = null,
-) {
-    /** Vista previa antes de enviar: lo que entrego pasa a libre y lo que recibo aparece en mi calendario. */
-    val preview: List<SwapDayPreview>
-        get() = selected?.let { mine ->
-            SwapProposal(
-                id = "",
-                direction = LinkDirection.Outgoing,
-                otherAlias = null,
-                proposerDate = mine.date,
-                proposerSlot = mine.slot,
-                proposerShift = mine.shiftName,
-                targetDate = target.date,
-                targetSlot = target.slot,
-                targetShift = target.shiftName,
-                status = SwapStatus.Pending,
-            ).previewForMe()
-        }.orEmpty()
-}
-
-/** Calendario de solo lectura de un compañero: mes mostrado, sus turnos, y la propuesta de cambio en curso. */
-data class SharedScheduleUiState(
-    val alias: String,
-    val month: CalendarMonth,
-    val assignments: List<SharedAssignment> = emptyList(),
-    val loading: Boolean = true,
-    val error: SocialError? = null,
-    val proposal: ProposalDraft? = null,
-)
 
 class SharedScheduleViewModel(
     private val ownerId: String,
     private val alias: String,
-    private val social: SocialRepository,
+    private val loadSchedule: LoadSharedScheduleUseCase,
+    private val proposeSwap: ProposeSwapUseCase,
+    private val buildSwapOptions: BuildSwapOptionsUseCase,
     today: TodayProvider,
-    private val localAssignments: ShiftAssignmentRepository,
-    private val localShifts: ShiftRepository,
 ) : ViewModel() {
 
     private val state = MutableStateFlow(SharedScheduleUiState(alias, CalendarMonth.of(today.today())))
@@ -96,31 +50,26 @@ class SharedScheduleViewModel(
         val month = state.value.month
         state.update { it.copy(loading = true, error = null) }
         viewModelScope.launch {
-            val result = social.sharedSchedule(ownerId, month)
+            val result = loadSchedule(ownerId, month)
             // Si mientras cargaba el usuario cambió de mes, se descarta esta respuesta.
             if (state.value.month != month) return@launch
             state.update {
                 it.copy(
                     assignments = result.getOrDefault(emptyList()),
                     loading = false,
-                    error = result.exceptionOrNull()?.let { e -> (e as? SocialException)?.error ?: SocialError.Unknown },
+                    error = result.exceptionOrNull()?.toSocialError(),
                 )
             }
         }
     }
 
-    /** Abre la propuesta sobre un turno del compañero, con mis turnos de los próximos 60 días como opciones. */
+    /** Abre la propuesta sobre un turno del compañero, con mis turnos de los próximos días como opciones.
+     * Si ya hay una abierta (o se está abriendo), un nuevo toque no la reemplaza: no se pierde la opción elegida. */
     fun openProposal(target: SharedAssignment) {
+        if (state.value.proposal != null) return
         viewModelScope.launch {
-            val names = localShifts.observeShifts().first().associate { it.id to it.name }
-            val from = todayDate
-            val to = LocalDate.fromEpochDays(from.toEpochDays() + 60)
-            val options = localAssignments.getAssignments(from, to)
-                .flatMap { (date, ids) -> ids.mapIndexedNotNull { slot, id ->
-                    names[id]?.let { MyShiftOption(date, slot, it) }
-                } }
-                .sortedWith(compareBy({ it.date }, { it.slot }))
-            state.update { it.copy(proposal = ProposalDraft(target, options)) }
+            val options: List<MyShiftOption> = buildSwapOptions(todayDate)
+            state.update { s -> if (s.proposal != null) s else s.copy(proposal = ProposalDraft(target, options)) }
         }
     }
 
@@ -137,12 +86,12 @@ class SharedScheduleViewModel(
         if (draft.sending) return
         state.update { it.copy(proposal = draft.copy(sending = true, error = null)) }
         viewModelScope.launch {
-            val result = social.proposeSwap(ownerId, mine.date, mine.slot, draft.target.date, draft.target.slot)
+            val result = proposeSwap(ownerId, mine.date, mine.slot, draft.target.date, draft.target.slot)
             state.update {
                 it.copy(
                     proposal = if (result.isSuccess) null else draft.copy(
                         sending = false,
-                        error = (result.exceptionOrNull() as? SocialException)?.error ?: SocialError.Unknown,
+                        error = result.exceptionOrNull()?.toSocialError() ?: SocialError.Unknown,
                     ),
                 )
             }

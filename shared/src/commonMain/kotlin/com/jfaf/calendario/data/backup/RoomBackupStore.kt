@@ -8,13 +8,14 @@ import com.jfaf.calendario.data.local.LocalHolidayEntity
 import com.jfaf.calendario.data.local.ShiftAssignmentEntity
 import com.jfaf.calendario.data.local.ShiftEntity
 import com.jfaf.calendario.data.repository.assignmentId
-import com.jfaf.calendario.data.repository.nowMillis
 import com.jfaf.calendario.domain.model.BackupAssignment
 import com.jfaf.calendario.domain.model.BackupNote
 import com.jfaf.calendario.domain.model.BackupShift
 import com.jfaf.calendario.domain.model.BackupSnapshot
 import com.jfaf.calendario.domain.model.NoteKind
 import com.jfaf.calendario.domain.repository.BackupStore
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
 import kotlinx.coroutines.flow.first
 import kotlinx.datetime.LocalDate
 
@@ -27,7 +28,8 @@ private const val LAST = "9999-12-31"
  * la sincronización lo quite también del servidor, y da a lo nuevo un `updatedAt` actual para que gane el
  * último cambio. Todo ocurre en una sola transacción: si algo falla, no queda nada a medias.
  */
-class RoomBackupStore(private val db: CalendarDatabase) : BackupStore {
+@OptIn(ExperimentalTime::class)
+class RoomBackupStore(private val db: CalendarDatabase, private val clock: Clock) : BackupStore {
 
     override suspend fun readAll(): BackupSnapshot = BackupSnapshot(
         shifts = db.shiftDao().getAlive().map { BackupShift(it.id, it.name, it.abbreviation, it.colorArgb, it.sortOrder, it.startMinutes, it.endMinutes, it.breakMinutes) },
@@ -41,7 +43,7 @@ class RoomBackupStore(private val db: CalendarDatabase) : BackupStore {
     )
 
     override suspend fun replaceAll(snapshot: BackupSnapshot) {
-        val now = nowMillis()
+        val now = clock.now().toEpochMilliseconds()
         db.useWriterConnection { transactor ->
             transactor.immediateTransaction {
                 // 1. Lo actual pasa a borrado lógico (la sincronización lo propaga al servidor).

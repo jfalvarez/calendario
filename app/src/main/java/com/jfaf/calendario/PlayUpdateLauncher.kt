@@ -14,7 +14,7 @@ import com.google.android.play.core.install.model.AppUpdateType
 import com.google.android.play.core.install.model.UpdateAvailability
 import com.jfaf.calendario.domain.model.AppVersionPolicy
 import com.jfaf.calendario.domain.repository.AppVersionProvider
-import com.jfaf.calendario.presentation.update.UpdateLauncher
+import com.jfaf.calendario.domain.platform.UpdateLauncher
 
 /**
  * Actualiza con Play In-App Updates: inmediato si la versión instalada está por debajo del mínimo, flexible si solo

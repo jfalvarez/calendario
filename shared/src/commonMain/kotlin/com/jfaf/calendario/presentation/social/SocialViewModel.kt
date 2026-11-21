@@ -8,12 +8,15 @@ import com.jfaf.calendario.domain.model.LinkRequestResult
 import com.jfaf.calendario.domain.model.LinkSummary
 import com.jfaf.calendario.domain.model.PendingRequest
 import com.jfaf.calendario.domain.model.SwapProposal
-import com.jfaf.calendario.domain.model.isValidAlias
+import com.jfaf.calendario.domain.platform.AppForegroundEvents
 import com.jfaf.calendario.domain.repository.SocialError
-import com.jfaf.calendario.domain.repository.SocialException
-import com.jfaf.calendario.domain.repository.SocialRepository
+import com.jfaf.calendario.domain.repository.toSocialError
+import com.jfaf.calendario.domain.usecase.LoadSocialOverviewUseCase
+import com.jfaf.calendario.domain.usecase.ManageLinksUseCase
+import com.jfaf.calendario.domain.usecase.ManageSwapsUseCase
 import com.jfaf.calendario.domain.usecase.ObserveAuthStateUseCase
-import com.jfaf.calendario.presentation.update.AppForegroundEvents
+import com.jfaf.calendario.domain.usecase.RequestLinkUseCase
+import com.jfaf.calendario.domain.usecase.SaveAliasUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -44,7 +47,11 @@ data class SocialUiState(
 )
 
 class SocialViewModel(
-    private val social: SocialRepository,
+    private val loadOverview: LoadSocialOverviewUseCase,
+    private val saveAliasUseCase: SaveAliasUseCase,
+    private val requestLinkUseCase: RequestLinkUseCase,
+    private val links: ManageLinksUseCase,
+    private val swaps: ManageSwapsUseCase,
     observeAuth: ObserveAuthStateUseCase,
     foregroundEvents: AppForegroundEvents,
 ) : ViewModel() {
@@ -58,69 +65,70 @@ class SocialViewModel(
         foregroundEvents.events.onEach { refresh() }.launchIn(viewModelScope)
     }
 
-    /** Recarga alias, solicitudes pendientes y vínculos. Sin sesión, los fallos dejan las listas vacías. */
+    /** Recarga alias, solicitudes pendientes, vínculos, propuestas y bloqueos. Sin sesión, las listas quedan vacías. */
     fun refresh() {
         viewModelScope.launch {
-            val alias = social.myAlias().getOrNull()
-            val pending = social.pendingRequests().getOrDefault(emptyList())
-            val links = social.myLinks().getOrDefault(emptyList())
-            val swaps = social.mySwaps().getOrDefault(emptyList())
-            val blocked = social.blockedUsers().getOrDefault(emptyList())
-            state.update { it.copy(myAlias = alias, pending = pending, links = links, swaps = swaps, blocked = blocked) }
-        }
-    }
-
-    fun saveAlias(input: String) {
-        val alias = input.trim()
-        if (!isValidAlias(alias)) {
-            state.update { it.copy(invalidAliasInput = true, aliasSaved = false, error = null) }
-            return
-        }
-        perform {
-            social.setAlias(alias).map { saved ->
-                state.update { it.copy(myAlias = saved, aliasSaved = true, invalidAliasInput = false) }
+            val overview = loadOverview()
+            state.update {
+                it.copy(
+                    myAlias = overview.alias,
+                    pending = overview.pending,
+                    links = overview.links,
+                    swaps = overview.swaps,
+                    blocked = overview.blocked,
+                )
             }
         }
     }
 
-    fun requestLink(input: String) {
-        val alias = input.trim()
-        if (!isValidAlias(alias)) {
-            state.update { it.copy(invalidAliasInput = true, requestResult = null, error = null) }
-            return
-        }
-        perform {
-            social.requestLink(alias).map { result ->
-                state.update { it.copy(requestResult = result, invalidAliasInput = false) }
-            }
+    fun saveAlias(input: String) = perform(onInvalidAlias = {
+        state.update { it.copy(invalidAliasInput = true, aliasSaved = false, error = null) }
+    }) {
+        saveAliasUseCase(input).map { saved ->
+            state.update { it.copy(myAlias = saved, aliasSaved = true, invalidAliasInput = false) }
         }
     }
 
-    fun accept(linkId: String) = perform { social.acceptRequest(linkId) }
-    fun reject(linkId: String) = perform { social.rejectRequest(linkId) }
-    fun block(linkId: String) = perform { social.blockRequester(linkId) }
-    fun unblock(blockedId: String) = perform { social.unblock(blockedId) }
-    fun revoke(linkId: String) = perform { social.revokeLink(linkId) }
+    fun requestLink(input: String) = perform(onInvalidAlias = {
+        state.update { it.copy(invalidAliasInput = true, requestResult = null, error = null) }
+    }) {
+        requestLinkUseCase(input).map { result ->
+            state.update { it.copy(requestResult = result, invalidAliasInput = false) }
+        }
+    }
+
+    fun accept(linkId: String) = perform { links.accept(linkId) }
+    fun reject(linkId: String) = perform { links.reject(linkId) }
+    fun block(linkId: String) = perform { links.block(linkId) }
+    fun unblock(blockedId: String) = perform { links.unblock(blockedId) }
+    fun revoke(linkId: String) = perform { links.revoke(linkId) }
 
     /** Aceptar o rechazar una propuesta que me han hecho. Al aceptar, el servidor cambia los dos calendarios. */
-    fun respondSwap(swapId: String, accept: Boolean) = perform { social.respondSwap(swapId, accept) }
-    fun cancelSwap(swapId: String) = perform { social.cancelSwap(swapId) }
+    fun respondSwap(swapId: String, accept: Boolean) = perform { swaps.respond(swapId, accept) }
+    fun cancelSwap(swapId: String) = perform { swaps.cancel(swapId) }
 
     /** Borra avisos de la última acción, por ejemplo al volver a escribir en el campo. */
     fun clearMessages() = state.update {
         it.copy(error = null, requestResult = null, aliasSaved = false, invalidAliasInput = false)
     }
 
-    /** Ejecuta una acción contra el servidor, muestra su error y recarga las listas si fue bien. */
-    private fun perform(action: suspend () -> Result<Unit>) {
+    /**
+     * Ejecuta una acción contra el servidor, muestra su error y recarga las listas si fue bien.
+     * Un alias con formato inválido no es un error de servidor: se avisa con [onInvalidAlias].
+     */
+    private fun perform(onInvalidAlias: (() -> Unit)? = null, action: suspend () -> Result<Unit>) {
         if (state.value.busy) return
         state.update { it.copy(busy = true, error = null) }
         viewModelScope.launch {
             val result = action()
-            state.update { it.copy(busy = false, error = result.exceptionOrNull()?.let(::errorOf)) }
+            val error = result.exceptionOrNull()?.toSocialError()
+            if (error == SocialError.InvalidAlias && onInvalidAlias != null) {
+                state.update { it.copy(busy = false) }
+                onInvalidAlias()
+                return@launch
+            }
+            state.update { it.copy(busy = false, error = error) }
             if (result.isSuccess) refresh()
         }
     }
-
-    private fun errorOf(e: Throwable): SocialError = (e as? SocialException)?.error ?: SocialError.Unknown
 }

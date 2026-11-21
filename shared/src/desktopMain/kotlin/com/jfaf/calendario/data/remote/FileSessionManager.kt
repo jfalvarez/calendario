@@ -5,6 +5,7 @@ import io.github.jan.supabase.auth.user.UserSession
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
@@ -15,9 +16,16 @@ import java.nio.file.attribute.PosixFilePermissions
  * sólo para su dueño (600 en Linux/macOS; en Windows `%APPDATA%` ya es privada del usuario), en lugar del registro
  * o las preferencias compartidas de Java (`java.util.prefs`), que son más fáciles de leer para otros procesos.
  * La escritura es atómica (archivo temporal + renombrado). Un archivo ilegible se trata como «sin sesión».
+ *
+ * `encodeDefaults` debe ser `true`: `UserSession.expiresAt` tiene valor por defecto y, si no se escribe, al cargar
+ * la sesión la librería cree que el token vale otra hora, nunca lo renueva y falla con «JWT expired».
+ * Una sesión sin `expiresAt` (guardada con la versión anterior) se descarta y hay que volver a iniciar sesión.
  */
 class FileSessionManager(private val file: File) : SessionManager {
-    private val json = Json { ignoreUnknownKeys = true }
+    private val json = Json {
+        ignoreUnknownKeys = true
+        encodeDefaults = true
+    }
 
     override suspend fun saveSession(session: UserSession) {
         withContext(Dispatchers.IO) {
@@ -30,7 +38,12 @@ class FileSessionManager(private val file: File) : SessionManager {
     }
 
     override suspend fun loadSession(): UserSession = withContext(Dispatchers.IO) {
-        json.decodeFromString(UserSession.serializer(), file.readText())
+        val text = file.readText()
+        if ("expiresAt" !in json.parseToJsonElement(text).jsonObject) {
+            file.delete()
+            throw IllegalStateException("Sesión guardada sin fecha de caducidad: se descarta")
+        }
+        json.decodeFromString(UserSession.serializer(), text)
     }
 
     override suspend fun loadSessionOrNull(): UserSession? =

@@ -13,7 +13,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.StickyNote2
+import androidx.compose.material.icons.automirrored.filled.StickyNote2
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
@@ -125,7 +125,7 @@ private fun NoteRow(note: DayNote, onSettle: (Boolean) -> Unit, onEdit: () -> Un
     val faded = note.isDebt && note.settled
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Icon(
-            if (note.isDebt) Icons.Filled.SwapHoriz else Icons.Filled.StickyNote2, null,
+            if (note.isDebt) Icons.Filled.SwapHoriz else Icons.AutoMirrored.Filled.StickyNote2, null,
             Modifier.size(20.dp).alpha(if (faded) 0.5f else 1f),
         )
         Column(Modifier.weight(1f).padding(horizontal = 8.dp).alpha(if (faded) 0.5f else 1f)) {

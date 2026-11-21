@@ -1,6 +1,4 @@
-package com.jfaf.calendario.presentation.backup
-
-import androidx.compose.runtime.staticCompositionLocalOf
+package com.jfaf.calendario.domain.platform
 
 /**
  * Guardar y abrir ficheros con el selector de cada plataforma. El usuario elige la carpeta o la app de destino;
@@ -13,6 +11,3 @@ interface BackupFileIo {
     /** Pide un fichero para abrir. [onPicked] recibe su texto, o `null` si el usuario cancela. */
     fun open(onPicked: (String?) -> Unit)
 }
-
-/** Lo aporta cada plataforma. Null donde no hay selector de ficheros (la sección de copia se oculta). */
-val LocalBackupFileIo = staticCompositionLocalOf<BackupFileIo?> { null }

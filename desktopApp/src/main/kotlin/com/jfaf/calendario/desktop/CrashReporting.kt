@@ -29,10 +29,4 @@ class SentryErrorReporter : ErrorReporter {
         if (!Sentry.isEnabled()) return
         Sentry.captureException(error) { scope -> scope.setTag("context", context) }
     }
-
-    override val canSendTest: Boolean get() = Sentry.isEnabled()
-
-    override fun sendTestReport() {
-        Sentry.captureException(RuntimeException("Informe de prueba de NurseOClock (escritorio)"))
-    }
 }

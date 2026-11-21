@@ -5,11 +5,14 @@ import com.jfaf.calendario.data.local.DayNoteEntity
 import com.jfaf.calendario.data.local.toDomain
 import com.jfaf.calendario.domain.model.DayNote
 import com.jfaf.calendario.domain.repository.DayNoteRepository
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.datetime.LocalDate
 
-class RoomDayNoteRepository(private val dao: DayNoteDao) : DayNoteRepository {
+@OptIn(ExperimentalTime::class)
+class RoomDayNoteRepository(private val dao: DayNoteDao, private val clock: Clock) : DayNoteRepository {
 
     override fun observeNotes(from: LocalDate, to: LocalDate): Flow<List<DayNote>> =
         dao.observeAlive(from.toString(), to.toString()).map { rows -> rows.map { it.toDomain() } }
@@ -25,7 +28,7 @@ class RoomDayNoteRepository(private val dao: DayNoteDao) : DayNoteRepository {
                 person = note.person,
                 body = note.text,
                 settled = note.settled,
-                updatedAt = nowMillis(),
+                updatedAt = clock.now().toEpochMilliseconds(),
                 deletedAt = null,
                 dirty = true,
             )
@@ -35,13 +38,13 @@ class RoomDayNoteRepository(private val dao: DayNoteDao) : DayNoteRepository {
     override suspend fun setSettled(id: String, settled: Boolean) {
         val existing = dao.get(id) ?: return
         if (existing.deletedAt != null || existing.settled == settled) return
-        dao.upsert(existing.copy(settled = settled, updatedAt = nowMillis(), dirty = true))
+        dao.upsert(existing.copy(settled = settled, updatedAt = clock.now().toEpochMilliseconds(), dirty = true))
     }
 
     override suspend fun delete(id: String) {
         val existing = dao.get(id) ?: return
         if (existing.deletedAt != null) return
-        val now = nowMillis()
+        val now = clock.now().toEpochMilliseconds()
         dao.upsert(existing.copy(deletedAt = now, updatedAt = now, dirty = true))
     }
 }

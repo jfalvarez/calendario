@@ -6,7 +6,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.ProcessLifecycleOwner
 import com.jfaf.calendario.data.sync.SyncEngine
 import com.jfaf.calendario.di.appModules
-import com.jfaf.calendario.presentation.update.AppForegroundEvents
+import com.jfaf.calendario.domain.platform.ForegroundNotifier
 import com.jfaf.calendario.widget.ShiftWidgetUpdater
 import com.jfaf.calendario.crash.CrashReporting
 import com.jfaf.calendario.reminder.ReminderUpdater
@@ -22,7 +22,7 @@ class CalendarioApplication : Application() {
             modules(appModules + androidModule)
         }.koin
         val sync = koin.get<SyncEngine>()
-        val foreground = koin.get<AppForegroundEvents>()
+        val foreground = koin.get<ForegroundNotifier>()
         koin.get<ShiftWidgetUpdater>().start()
         val reminders = koin.get<ReminderUpdater>()
         reminders.start()

@@ -1,4 +1,4 @@
-package com.jfaf.calendario.presentation.update
+package com.jfaf.calendario.domain.platform
 
 import com.jfaf.calendario.domain.model.AppVersionPolicy
 

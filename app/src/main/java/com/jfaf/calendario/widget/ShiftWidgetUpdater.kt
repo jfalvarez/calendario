@@ -5,9 +5,7 @@ import androidx.glance.appwidget.updateAll
 import com.jfaf.calendario.domain.repository.TodayProvider
 import com.jfaf.calendario.domain.usecase.ObserveUpcomingDaysUseCase
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
@@ -20,8 +18,8 @@ class ShiftWidgetUpdater(
     private val context: Context,
     private val observeUpcoming: ObserveUpcomingDaysUseCase,
     private val today: TodayProvider,
+    private val scope: CoroutineScope,
 ) {
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var job: Job? = null
 
     /** Empieza a observar hoy y mañana; si ya observaba, reinicia (al cambiar de día la ventana de fechas se desplaza). */

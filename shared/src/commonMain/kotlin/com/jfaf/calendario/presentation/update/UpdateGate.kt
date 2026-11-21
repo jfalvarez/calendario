@@ -19,6 +19,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.jfaf.calendario.domain.model.AppVersionPolicy
 import com.jfaf.calendario.domain.model.UpdateStatus
+import com.jfaf.calendario.domain.platform.UpdateLauncher
 import com.jfaf.calendario.resources.Res
 import com.jfaf.calendario.resources.update_later
 import com.jfaf.calendario.resources.update_now
