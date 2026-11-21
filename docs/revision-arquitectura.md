@@ -120,17 +120,31 @@ Relacionado: `MainActivity` inyecta `AndroidReminderSystem` y `PlayUpdateLaunche
 
 Cada fase es independiente, se puede hacer en una rama y entra en `develop` con los tests en verde. Orden pensado para **menor riesgo primero** y para que lo que se prueba antes (H5) proteja lo que se refactoriza después (H1, H3, H4).
 
-| Fase | Contenido | Hallazgos | Riesgo | Esfuerzo |
-|---|---|---|---|---|
-| 0 | Red de seguridad: tests de VMs | H5 | Nulo | M |
-| 1 | Higiene y orden (sin cambiar comportamiento) | H11 | Muy bajo | S |
-| 2 | Reloj y dispatchers inyectables | H6, H8 | Bajo | S |
-| 3 | Capa social: casos de uso y partir la interfaz | H1, H2 | Medio | M |
-| 4 | Partir `CalendarViewModel` y `CalendarScreen` | H4 | Medio | M-L |
-| 5 | `SyncEngine` extensible | H3 | Medio-alto | L |
-| 6 | Android y puertos de plataforma | H7, H9, H10 | Bajo-medio | M |
+| Fase | Contenido | Hallazgos | Riesgo | Esfuerzo | Estado |
+|---|---|---|---|---|---|
+| 0 | Red de seguridad: tests de VMs | H5 | Nulo | M | Hecha (`34ef74c`) |
+| 1 | Higiene y orden (sin cambiar comportamiento) | H11 | Muy bajo | S | Hecha (`ab938f2`) |
+| 2 | Reloj y dispatchers inyectables | H6, H8 | Bajo | S | Hecha (`e000e1b`) |
+| 3 | Capa social: casos de uso y partir la interfaz | H1, H2 | Medio | M | Hecha (`301d0fe`) |
+| 4 | Partir `CalendarViewModel` y `CalendarScreen` | H4 | Medio | M-L | Hecha (`42896e7`) |
+| 5 | `SyncEngine` extensible | H3 | Medio-alto | L | Hecha (`4e3bcba`) |
+| 6 | Android y puertos de plataforma | H7, H9, H10 | Bajo-medio | M | Hecha (`1ea01a5`) |
 
 (S = medio día, M = 1-2 días, L = 3 días o más.)
+
+**Desviaciones respecto al plan**
+
+- Fase 2: `AppDispatchers` solo expone `io` y `default`. Ningún componente de la capa de datos necesitó `main`.
+- Fase 3: el helper de errores es `Throwable.toSocialError()`, no `Result<T>.toSocialError()`.
+- Fase 4: la guarda "pulsación larga solo en modo Editar" y el reinicio de selección al cambiar de modo viven en la pantalla, no en el ViewModel. Su lógica está en funciones puras (`DayTapRouting.kt`) con tests.
+- Fase 6: `MainActivity` sigue usando los tipos concretos `PlayUpdateLauncher` y `AndroidReminderSystem`, porque `attach(activity)` es específico de Android.
+- Fase 6: `DiagnosticsTools` se eliminó (ya no tenía interfaz de usuario). Ver el historial de `a7ba8e0`.
+
+**Pendiente**
+
+- Comparación visual antes/después de la Fase 4 (paso 5 de la fase): no se ha hecho.
+- Prueba manual de la pantalla del calendario en escritorio: pendiente.
+- Deuda técnica registrada: [`deuda-tecnica.md`](deuda-tecnica.md).
 
 ### Fase 0 · Red de seguridad: tests de ViewModels
 
